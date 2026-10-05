@@ -199,3 +199,165 @@ def ensure_background_assets(work, W, H, style, tile_px=None):
     if not os.path.exists(par_path):
         write_pgm(par_path, W, 2 * H, particle_field(W, H, n=n, rmax=max(3.0, W / 260.0)))
     return pat_path, T, par_path
+
+
+# ---------------------------------------------------------------------------
+# Extra background layers: rosette, light rays, masjid skyline
+# (all aniconic: geometry, light, architecture)
+# ---------------------------------------------------------------------------
+
+class _Canvas:
+    """Grayscale canvas with an anti-aliased stroke stamp (fast enough in pure Python)."""
+
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.buf = bytearray(w * h)
+
+    def dot(self, x, y, r):
+        x0, x1 = max(0, int(x - r - 1)), min(self.w - 1, int(x + r + 1))
+        y0, y1 = max(0, int(y - r - 1)), min(self.h - 1, int(y + r + 1))
+        for yy in range(y0, y1 + 1):
+            row = yy * self.w
+            dy = (yy + 0.5 - y) ** 2
+            for xx in range(x0, x1 + 1):
+                d = math.sqrt((xx + 0.5 - x) ** 2 + dy)
+                v = int(_clamp01(r + 0.5 - d) * 255)
+                if v > self.buf[row + xx]:
+                    self.buf[row + xx] = v
+
+    def line(self, ax, ay, bx, by, r):
+        L = math.hypot(bx - ax, by - ay)
+        n = max(1, int(L / max(0.6, r * 0.7)))
+        for i in range(n + 1):
+            t = i / n
+            self.dot(ax + (bx - ax) * t, ay + (by - ay) * t, r)
+
+    def circle(self, cx, cy, rad, r):
+        n = max(12, int(2 * math.pi * rad / max(0.6, r * 0.7)))
+        for i in range(n):
+            a = 2 * math.pi * i / n
+            self.dot(cx + rad * math.cos(a), cy + rad * math.sin(a), r)
+
+    def poly(self, pts, r):
+        for i in range(len(pts)):
+            self.line(*pts[i], *pts[(i + 1) % len(pts)], r)
+
+
+def rosette(S, stroke=None):
+    """Large 16-fold Islamic rosette (star polygons + rings) as an S*S mask."""
+    c = _Canvas(S, S)
+    cx = cy = S / 2.0
+    r = stroke or max(1.0, S / 520.0)
+    R = S * 0.47
+    for k, rr in enumerate((R, R * 0.78, R * 0.42, R * 0.16)):
+        c.circle(cx, cy, rr, r * (1.3 if k == 0 else 1.0))
+    # {16/5} and {8/3} star polygons
+    def star(n, step, rad, rot=0.0):
+        pts = [(cx + rad * math.cos(rot + 2 * math.pi * i / n), cy + rad * math.sin(rot + 2 * math.pi * i / n))
+               for i in range(n)]
+        for i in range(n):
+            c.line(*pts[i], *pts[(i + step) % n], r)
+    star(16, 5, R * 0.78)
+    star(8, 3, R * 0.42, math.pi / 8)
+    star(8, 3, R * 0.42)
+    # petals between the outer rings
+    for i in range(32):
+        a = 2 * math.pi * i / 32
+        a2 = 2 * math.pi * (i + 0.5) / 32
+        c.line(cx + R * 0.78 * math.cos(a), cy + R * 0.78 * math.sin(a),
+               cx + R * math.cos(a2), cy + R * math.sin(a2), r * 0.8)
+        c.line(cx + R * 0.78 * math.cos(a + 2 * math.pi / 32), cy + R * 0.78 * math.sin(a + 2 * math.pi / 32),
+               cx + R * math.cos(a2), cy + R * math.sin(a2), r * 0.8)
+    return c.buf
+
+
+def light_rays(w, h, n=7, seed=3):
+    """Soft god-rays falling from above (small; scale up in ffmpeg)."""
+    rnd = random.Random(seed)
+    sx, sy = w * 0.5, -h * 0.25
+    rays = [(rnd.uniform(-0.55, 0.55), rnd.uniform(0.02, 0.06), rnd.uniform(0.4, 1.0)) for _ in range(n)]
+    out = bytearray(w * h)
+    for y in range(h):
+        fade = max(0.0, 1.0 - y / (h * 0.85)) ** 1.4
+        for x in range(w):
+            ang = math.atan2(x - sx, y - sy)
+            v = 0.0
+            for a0, wd, st in rays:
+                d = (ang - a0) / wd
+                v += st * math.exp(-d * d)
+            out[y * w + x] = int(min(1.0, v) * fade * 255)
+    return out
+
+
+def skyline(w, h, seed=5):
+    """Masjid silhouette (domes + minarets) as a w*h mask, ground at the bottom."""
+    rnd = random.Random(seed)
+    top = [h] * w  # first filled row per column
+
+    def fill(x0, x1, ytop_fn):
+        for x in range(max(0, int(x0)), min(w, int(x1) + 1)):
+            yt = ytop_fn(x)
+            if yt is not None and yt < top[x]:
+                top[x] = max(0, int(yt))
+
+    base = h * 0.78
+    fill(0, w, lambda x: base)
+    # central great dome + side domes
+    for cxf, rf, drum in ((0.5, 0.17, 0.10), (0.27, 0.09, 0.05), (0.73, 0.09, 0.05), (0.1, 0.06, 0.03),
+                          (0.9, 0.06, 0.03)):
+        cx, r = w * cxf, w * rf
+        db = base - h * drum
+        fill(cx - r * 1.05, cx + r * 1.05, lambda x, cx=cx, db=db: db)
+        def dome(x, cx=cx, r=r, db=db):
+            u = (x - cx) / r
+            if abs(u) > 1:
+                return None
+            return db - r * 0.95 * math.sqrt(1 - u * u) * (1 + 0.25 * (1 - abs(u)) ** 3)
+        fill(cx - r, cx + r, dome)
+        # finial
+        fill(cx - 1.5, cx + 1.5, lambda x, cx=cx, r=r, db=db: db - r * 1.25 - h * 0.05)
+    # minarets
+    for mf in (0.17, 0.38, 0.62, 0.83):
+        mx, mw = w * mf, max(3, w * 0.012)
+        mt = h * rnd.uniform(0.08, 0.16)
+        fill(mx - mw, mx + mw, lambda x, mt=mt: mt + h * 0.04)
+        fill(mx - mw * 1.7, mx + mw * 1.7, lambda x, mt=mt: mt + h * 0.16)  # balcony
+        def spire(x, mx=mx, mw=mw, mt=mt):
+            u = abs(x - mx) / mw
+            return mt + u * h * 0.04 if u <= 1 else None
+        fill(mx - mw, mx + mw, spire)
+    out = bytearray(w * h)
+    for x in range(w):
+        for y in range(top[x], h):
+            out[y * w + x] = 255
+    # soft top edge (1px AA)
+    for x in range(1, w - 1):
+        y = top[x] - 1
+        if 0 <= y < h:
+            out[y * w + x] = max(out[y * w + x], 110)
+    return out
+
+
+def ensure_layer_assets(work, W, H):
+    paths = {}
+    S = even_int(W * 0.98)
+    p = os.path.join(work, f"rosette_{S}.pgm")
+    if not os.path.exists(p):
+        write_pgm(p, S, S, rosette(S))
+    paths["rosette"] = (p, S)
+    rw, rh = W // 4, H // 4
+    p = os.path.join(work, f"rays_{rw}x{rh}.pgm")
+    if not os.path.exists(p):
+        write_pgm(p, rw, rh, light_rays(rw, rh))
+    paths["rays"] = (p, rw, rh)
+    sw, sh = W + W // 5, even_int(H * 0.28)
+    p = os.path.join(work, f"skyline_{sw}x{sh}.pgm")
+    if not os.path.exists(p):
+        write_pgm(p, sw, sh, skyline(sw, sh))
+    paths["skyline"] = (p, sw, sh)
+    return paths
+
+
+def even_int(x):
+    x = int(round(x))
+    return x - (x % 2)

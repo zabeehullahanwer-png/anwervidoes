@@ -54,6 +54,17 @@ maps them through the kept segments. An overlay whose span falls entirely inside
     {"type": "broll", "start": 30, "end": 34, "file": "videos/raw/masjid.jpg"}   // image (slow pan) or video; full-screen
   ],
 
+  "bg_layers": {                 // behind the speaker (defaults shown); set "enabled": false to drop one
+    "rosette": {"enabled": true, "y": 0.30, "size": 0.98, "opacity": 0.20, "spin": 0.035},
+    "rays":    {"enabled": true, "opacity": 0.16, "color": "#FFE9C2"},
+    "skyline": {"enabled": true, "opacity": 0.60}
+  },
+  "scenes": [                    // big faded context word behind the speaker, changes with the topic
+    {"start": 1.1, "end": 3.5, "word": "حدیث", "y": 0.27, "size": 0.15}
+  ],
+  // keyword overlays also accept "x", "y" (0..1) and "size" (em fraction, default 0.09)
+  // captions accept "style": {"box": true} to put a dark panel behind them (e.g. over white clothes)
+
   "intro":  {"enabled": true, "duration": 2.8, "top_text": "بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ",
              "name": "مولانا ...", "subtitle": "..."},
   "outro":  {"enabled": true, "duration": 4.0, "name": "مولانا ...",

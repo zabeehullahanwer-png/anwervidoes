@@ -56,6 +56,9 @@ $DAI transcribe videos/raw/X.mp4 --lang ur   # ur | hi | ar | en | auto  (model:
   look the engine can make. Check the key in `preview`/`frames`. If edges flicker, raise `keying.similarity`
   (0.13 → 0.16). If clothes turn pink, lower `keying.despill`. Use a zoom of at least 1.06 so the chair or
   set edges at the frame border are cut off.
+* **No Whisper?** If the user types what they said, run
+  `$DAI align RAW --text script.txt --start S --end E`. It times each word to the voiced audio and snaps
+  sentence breaks to real pauses, writing the same `transcript.json` that `autoplan` uses.
 * **Read the contact sheet images** (`contact_*.jpg`). Note where the face is, so you can set `focus`. Note the
   framing, the lighting (for the grade), and any distractions such as a phone ringing or someone walking in.
 * Read `transcript.txt` from start to end like an editor. Understand the talk: the topic, the strongest line
@@ -92,10 +95,15 @@ the real editing (schema: `reference/edit-plan.md`):
 6. **Captions:** fix Whisper's mistakes using context, especially religious terms (صلی اللہ علیہ وسلم,
    رضی اللہ عنہ, Allah's names, the names of the Sahaba). Keep each chunk 3–5 words for reels and up to 7 for YouTube. Keep the `words`
    timings when you only change spelling. If you merge or split chunks, recompute `start`/`end`.
-7. **Lower-third** with name and title, about 1.5 s into the content, for about 5 s.
-8. **Intro/outro.** Intro: a 2.5–3 s Bismillah with the name. Outro: name, CTA (e.g. "Subscribe • Share — صدقہ جاریہ") and handle.
+7. **Background layers and scenes ("layers").** Behind the speaker the engine draws: gradient, light rays,
+   a slowly rotating 16-point rosette (`bg_layers.rosette.y` ≈ head height), the geometric lattice, a masjid
+   skyline and particles. Add `scenes`, one big faded word per thought (e.g. حدیث → مجلسِ نبوی → ظاہری حالت),
+   so the backdrop changes with what is being said. Place keyword pops (e.g. «ﷺ» when the durood is said)
+   beside the head with `x`/`y`, never over the face or beard.
+8. **Lower-third** with name and title, about 1.5 s into the content, for about 5 s.
+9. **Intro/outro.** Intro: a 2.5–3 s Bismillah with the name. Outro: name, CTA (e.g. "Subscribe • Share — صدقہ جاریہ") and handle.
    For reels under 30 s, shorten the intro to about 1.5 s or disable it. Retention matters.
-9. **Audio.** `denoise`: `light` for a clean room, `medium` by default, `strong` for a fan or AC hum. Music is **off by default**
+10. **Audio.** `denoise`: `light` for a clean room, `medium` by default, `strong` for a fan or AC hum. Music is **off by default**
    (see the style guide). Use only audio the user provides, e.g. a vocal-only nasheed or ambience. `whoosh` (a soft
    transition swoosh) is off by default and may be enabled for `reel-dynamic`.
 

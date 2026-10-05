@@ -35,7 +35,7 @@ def script_of(text, prefer="urdu"):
     has_ar = any("\u0600" <= ch <= "\u06FF" or "\u0750" <= ch <= "\u077F"
                  or "\uFB50" <= ch <= "\uFDFF" or "\uFE70" <= ch <= "\uFEFF" for ch in text)
     if has_ar:
-        if prefer == "arabic":
+        if prefer == "arabic" or (text.strip() and all(ch in "\uFDFA\uFDFB\uFDF2 " for ch in text)):
             return "arabic"
         return "urdu"
     if any("\u0900" <= ch <= "\u097F" for ch in text):
@@ -361,26 +361,42 @@ class AssDoc:
             y += hgt
         return margin
 
-    def keyword(self, t0, t1, text, cx, cy):
-        tag, scr, sz = self.text_tag(text, 0.090, bold=True, col=self.style["accent"],
+    def keyword(self, t0, t1, text, cx, cy, frac=0.090):
+        tag, scr, sz = self.text_tag(text, frac, bold=True, col=self.style["accent"],
                                      outline=max(3, int(self.base * 0.006)), shadow=3)
         self.add(t0, t1, "{\\an5\\pos(%d,%d)%s\\fscx55\\fscy55\\t(0,140,\\fscx112\\fscy112)"
                          "\\t(140,260,\\fscx100\\fscy100)\\fad(0,220)}%s"
-                 % (cx, cy, tag, self.mk(text, 0.090, bold=True)), layer=10)
+                 % (cx, cy, tag, self.mk(text, frac, bold=True)), layer=10)
 
-    def headline(self, t0, t1, text, cx, cy, max_w, kicker=""):
-        tag, scr, sz = self.text_tag(text, 0.058, bold=True, outline=2, shadow=2,
-                                     col=self.style.get("on_background_text", self.style["text"]))
-        self.add(t0, t1, "{\\an5\\pos(%d,%d)%s\\fad(500,300)\\blur3\\t(0,500,\\blur0)}%s"
-                 % (cx, cy, tag, self.mk(text, 0.058, bold=True)), layer=6)
-        lines = est_lines(text, sz, scr, max_w)
-        bottom = cy + lines * sz * LINE_FACTOR[scr] * 0.42
-        self.divider(t0, t1, cx, int(bottom + self.base * 0.02), int(self.base * 0.22), delay_ms=300)
+    def headline(self, t0, t1, text, cx, cy, max_w, kicker="", frac=0.058):
+        """Title block: optional kicker, 1-2 balanced lines (placed explicitly; Nastaliq's
+        natural line box is far too tall), then an animated gold divider."""
+        col = self.style.get("on_background_text", self.style["text"])
+        em = self.base * frac
+        lines = [text]
+        if self.width(text, frac) > max_w and len(text.split()) > 1:
+            words = text.split()
+            best = None
+            for k in range(1, len(words)):
+                a_, b_ = " ".join(words[:k]), " ".join(words[k:])
+                d = abs(self.width(a_, frac) - self.width(b_, frac))
+                if best is None or d < best[0]:
+                    best = (d, [a_, b_])
+            lines = best[1]
+            frac = min(frac, frac * max_w / max(self.width(l, frac) for l in lines))
+            em = self.base * frac
+        gap = em * 1.75
+        y0 = cy - gap * (len(lines) - 1) / 2
+        for i, line in enumerate(lines):
+            tag, scr, sz = self.text_tag(line, frac, bold=True, outline=2, shadow=2, col=col)
+            self.add(t0, t1, "{\\an5\\pos(%d,%d)%s\\fad(%d,300)\\blur3\\t(0,500,\\blur0)}%s"
+                     % (cx, int(y0 + i * gap), tag, 500 + 150 * i, self.mk(line, frac, bold=True)), layer=6)
+        bottom = y0 + gap * (len(lines) - 1) + em * 1.2
+        self.divider(t0, t1, cx, int(bottom), int(self.base * 0.22), delay_ms=300)
         if kicker:
             ktag, kscr, ksz = self.text_tag(kicker, 0.030, col=self.style["accent"], bold=True)
-            top = cy - lines * sz * LINE_FACTOR[scr] * 0.42
-            self.add(t0, t1, "{\\an2\\pos(%d,%d)%s\\fad(500,300)}%s" % (cx, int(top - self.base * 0.01), ktag, self.mk(kicker, 0.030, bold=True)),
-                     layer=6)
+            self.add(t0, t1, "{\\an5\\pos(%d,%d)%s\\fad(500,300)}%s"
+                     % (cx, int(y0 - em * 1.3), ktag, self.mk(kicker, 0.030, bold=True)), layer=6)
 
     def intro(self, t0, t1, top_text, name, subtitle, on_background_col):
         W, H = self.W, self.H
@@ -421,10 +437,12 @@ class AssDoc:
             self.add(t0 + 0.8, t1, "{\\an8\\pos(%d,%d)%s\\fad(400,500)}%s"
                      % (cx, int(H * 0.53 + self.base * 0.13), tag, self.mk(handle, 0.028)), layer=9)
 
-    def watermark(self, t0, t1, text, top_right=True):
+    def watermark(self, t0, t1, text, top_right=True, bottom=False):
         tag, scr, sz = self.text_tag(text, 0.022, col="#FFFFFF", outline=1, shadow=1)
         m = int(self.base * 0.04)
-        if top_right:
+        if bottom:
+            pos = "\\an2\\pos(%d,%d)" % (self.W // 2, self.H - int(m * 0.55))
+        elif top_right:
             pos = "\\an9\\pos(%d,%d)" % (self.W - m, m)
         else:
             pos = "\\an7\\pos(%d,%d)" % (m, m)

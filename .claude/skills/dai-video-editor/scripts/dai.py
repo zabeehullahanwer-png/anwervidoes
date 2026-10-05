@@ -14,6 +14,7 @@ Commands
   doctor                      check ffmpeg / fonts / whisper
   analyze   RAW               probe, silence map, loudness, contact sheets
   transcribe RAW              word-level transcript (faster-whisper)
+  align     RAW --text T      time a transcript the user typed (when Whisper is unavailable)
   autoplan  RAW               draft edit_plan.json (cuts, zooms, captions, titles)
   preview   PLAN [--at ...]   fast still preview of titles/captions/layout (seconds, not minutes)
   render    PLAN [--draft]    render the final video from an edit plan
@@ -297,6 +298,97 @@ def cmd_transcribe(a):
 
 
 # ---------------------------------------------------------------------------
+# align (user-supplied transcript, no ASR)
+# ---------------------------------------------------------------------------
+
+def voiced_intervals(video, t0, t1, noise_db=-30, min_d=0.12):
+    sil = silences(video, noise_db, min_d)
+    out, t = [], t0
+    for s, e in sil:
+        e = t1 if e is None else e
+        if e <= t0 or s >= t1:
+            continue
+        if s > t:
+            out.append([t, min(s, t1)])
+        t = max(t, e)
+    if t < t1:
+        out.append([t, t1])
+    return [iv for iv in out if iv[1] - iv[0] > 0.05]
+
+
+def cmd_align(a):
+    """Spread the words of a known transcript over the voiced parts of the audio.
+    Each word gets time in proportion to its length; sentences break at ۔ . ? ! and new lines.
+    Good enough for captions when Whisper is unavailable; refine by hand if needed."""
+    import unicodedata
+    work = a.work or workdir_for(a.video)
+    text = open(a.text, encoding="utf-8").read() if os.path.exists(a.text) else a.text
+    info = probe(a.video)
+    t0 = a.start if a.start is not None else 0.0
+    t1 = a.end if a.end is not None else info["duration"]
+    ivs = voiced_intervals(a.video, t0, t1, a.noise)
+    sentences = [x.strip() for x in re.split(r"(?<=[۔.؟?!])\s+|\n+", text) if x.strip()]
+    words = [(w, si) for si, snt in enumerate(sentences) for w in snt.split()]
+    if not words or not ivs:
+        raise SystemExit("nothing to align (no words or no speech found)")
+    weight = [sum(1 for ch in w if not unicodedata.combining(ch)) + 1.5 for w, _ in words]
+
+    def spread(items, wts, span_ivs):
+        """proportional placement of items over the voiced intervals in span_ivs"""
+        tw, tt = sum(wts), sum(e - s for s, e in span_ivs)
+
+        def at(x):
+            acc = 0.0
+            for s, e in span_ivs:
+                if acc + (e - s) >= x - 1e-9:
+                    return s + (x - acc)
+                acc += e - s
+            return span_ivs[-1][1]
+        acc, res = 0.0, []
+        for it, wt in zip(items, wts):
+            ws = at(acc / tw * tt)
+            acc += wt
+            we = at(acc / tw * tt)
+            res.append((it, ws, we))
+        return res
+
+    # 1) where would each sentence break fall proportionally?  2) snap it to a nearby real pause
+    sw = [sum(wt for (w, si), wt in zip(words, weight) if si == k) for k in range(len(sentences))]
+    prop = spread(list(range(len(sentences))), sw, ivs)
+    gaps = [(ivs[i][1], ivs[i + 1][0]) for i in range(len(ivs) - 1)]
+    bounds, used = [], set()
+    for k in range(len(sentences) - 1):
+        bt = prop[k][2]
+        best = min(((abs((g0 + g1) / 2 - bt), gi) for gi, (g0, g1) in enumerate(gaps) if gi not in used),
+                   default=None)
+        if best and best[0] < 1.6:
+            used.add(best[1])
+            bounds.append(gaps[best[1]])
+        else:
+            bounds.append((bt, bt))
+    edges = [ivs[0][0]] + [x for g in bounds for x in g] + [ivs[-1][1]]
+    timed = []
+    for k in range(len(sentences)):
+        a0, a1 = edges[2 * k], edges[2 * k + 1]
+        span = [[max(s_, a0), min(e_, a1)] for s_, e_ in ivs if e_ > a0 and s_ < a1] or [[a0, max(a1, a0 + 0.3)]]
+        idxs = [i for i, (w, si) in enumerate(words) if si == k]
+        for i, ws, we in spread(idxs, [weight[i] for i in idxs], span):
+            timed.append((words[i][0], k, round(ws, 3), round(max(ws + 0.05, we - 0.02), 3)))
+    segs = []
+    for si, snt in enumerate(sentences):
+        ws = [x for x in timed if x[1] == si]
+        segs.append({"start": ws[0][2], "end": ws[-1][3], "text": snt,
+                     "words": [{"w": w, "s": s_, "e": e_, "p": 1.0} for w, _, s_, e_ in ws]})
+    path = os.path.join(work, "transcript.json")
+    save_json(path, {"language": a.lang, "aligned_from_text": True, "segments": segs})
+    with open(os.path.join(work, "transcript.txt"), "w", encoding="utf-8") as f:
+        for i, sg in enumerate(segs):
+            f.write(f"[{i:03d}] {sg['start']:8.2f} → {sg['end']:8.2f} | {sg['text']}\n")
+    print(json.dumps({"transcript": path, "voiced": ivs, "sentences": len(segs), "words": len(timed)},
+                     ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
 # autoplan
 # ---------------------------------------------------------------------------
 
@@ -559,6 +651,91 @@ def cut_segments(plan, info, geo, work, draft):
     return speaker
 
 
+def ass_filter_path(p):
+    return p.replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+
+
+DEFAULT_LAYERS = {
+    "rosette": {"enabled": True, "y": 0.30, "size": 0.98, "opacity": 0.20, "spin": 0.035},
+    "rays": {"enabled": True, "opacity": 0.16, "color": "#FFE9C2"},
+    "skyline": {"enabled": True, "opacity": 0.60},
+}
+
+
+def layer_cfg(plan, style):
+    cfg = json.loads(json.dumps(DEFAULT_LAYERS))
+    for src in (style.get("layers") or {}, plan.get("bg_layers") or {}):
+        for k, v in src.items():
+            if isinstance(v, dict):
+                cfg.setdefault(k, {}).update(v)
+            else:
+                cfg[k] = {"enabled": bool(v)}
+    return cfg
+
+
+def add_bg_layers(fc, inputs, idx, last, W, H, T, style, plan, work):
+    """Rays, rotating rosette and masjid skyline between the gradient and the particles."""
+    cfg = layer_cfg(plan, style)
+    if not any(v.get("enabled") for v in cfg.values()):
+        return last, idx
+    assets = graphics.ensure_layer_assets(work, W, H)
+    loop = ["-loop", "1", "-framerate", str(FPS), "-t", f"{T:.3f}", "-i"]
+    hexc = lambda c: c.replace("#", "0x")
+    r = cfg.get("rays", {})
+    if r.get("enabled"):
+        p, rw, rh = assets["rays"]
+        inputs += loop + [p]
+        fc.append(f"[{idx}:v]format=gray,rotate=a='0.05*sin(t*0.33)':c=black,scale={W}:{H}:flags=bicubic,"
+                  f"lut=y='val*{r.get('opacity', 0.16):.3f}'[rym]")
+        fc.append(f"color=c={hexc(r.get('color', '#FFE9C2'))}:s={W}x{H}:r={FPS}:d={T:.3f},format=yuva420p[ryc]")
+        fc.append(f"[ryc][rym]alphamerge[ryl];[{last}][ryl]overlay=format=auto:shortest=1[lr]")
+        last, idx = "lr", idx + 1
+    ro = cfg.get("rosette", {})
+    if ro.get("enabled"):
+        p, S = assets["rosette"]
+        inputs += loop + [p]
+        sz = graphics.even_int(S * float(ro.get("size", 0.98)) / 0.98)
+        fc.append(f"[{idx}:v]format=gray,scale={sz}:{sz},rotate=a='t*{ro.get('spin', 0.035)}':c=black,"
+                  f"lut=y='val*{ro.get('opacity', 0.2):.3f}'[rom]")
+        fc.append(f"color=c={hexc(ro.get('color', style['accent']))}:s={sz}x{sz}:r={FPS}:d={T:.3f},format=yuva420p[roc]")
+        fc.append(f"[roc][rom]alphamerge[rol];[{last}][rol]overlay=x={(W - sz) // 2}:"
+                  f"y={int(H * float(ro.get('y', 0.3)) - sz / 2)}:format=auto:shortest=1[lro]")
+        last, idx = "lro", idx + 1
+    sk = cfg.get("skyline", {})
+    if sk.get("enabled"):
+        p, sw, sh = assets["skyline"]
+        inputs += loop + [p]
+        col = sk.get("color") or style["background"]["colors"][0]
+        fc.append(f"[{idx}:v]format=gray,crop={W}:{sh}:x='({sw}-{W})/2*(1+sin(t*0.12))':y=0,"
+                  f"lut=y='val*{sk.get('opacity', 0.6):.3f}'[skm]")
+        fc.append(f"color=c={hexc(col)}:s={W}x{sh}:r={FPS}:d={T:.3f},format=yuva420p[skc]")
+        fc.append(f"[skc][skm]alphamerge[skl];[{last}][skl]overlay=x=0:y={H - sh}:format=auto:shortest=1[lsk]")
+        last, idx = "lsk", idx + 1
+    return last, idx
+
+
+def build_bg_ass(plan, style, W, H, tl, path):
+    """Big faded context words that change with the topic ('scenes'), drawn behind the speaker."""
+    scenes = [sc for sc in plan.get("scenes", []) if sc.get("word")]
+    if not scenes:
+        return False
+    doc = AssDoc(W, H, style, plan.get("language", "ur"))
+    acc = style["accent"]
+    for sc in scenes:
+        t0, t1 = tl.span(sc["start"], sc["end"])
+        if t1 - t0 < 0.4:
+            continue
+        frac = float(sc.get("size", 0.16))
+        tag, scr, sz = doc.text_tag(sc["word"], frac, col=sc.get("color", acc))
+        a = int(sc.get("alpha", 0xC8))
+        doc.add(t0, t1, "{\\an5\\pos(%d,%d)%s\\alpha&H%02X&\\blur1.5\\fad(700,600)"
+                        "\\fscx96\\fscy96\\t(0,%d,\\fscx106\\fscy106)}%s"
+                % (W // 2, int(H * float(sc.get("y", 0.47))), tag, a, int((t1 - t0) * 1000),
+                   doc.mk(sc["word"], frac)), layer=1)
+    doc.write(path)
+    return bool(doc.events)
+
+
 def build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, total, ass_path, brand):
     doc = AssDoc(W, H, style, plan.get("language", "ur"))
     cx = W // 2
@@ -604,7 +781,10 @@ def build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, total, ass_path, bra
         for i in range(len(chunks) - 1):
             if chunks[i]["end"] > chunks[i + 1]["start"]:
                 chunks[i]["end"] = chunks[i + 1]["start"]
+        if cap.get("style"):  # per-video override, e.g. {"box": true} over light clothing
+            doc.style = dict(doc.style, captions=dict(doc.style["captions"], **cap["style"]))
         doc.captions(chunks, cap_y)
+        doc.style = style
     # overlays
     cards = [tl.span(o["start"], o["end"]) for o in plan.get("overlays", []) if o.get("type") == "quote_card"]
     for o in plan.get("overlays", []):
@@ -640,14 +820,18 @@ def build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, total, ass_path, bra
                 ky = int(H * float(o.get("y", 0.52)))
             else:
                 ky = int(H * (0.30 if H > W else 0.22))
-            doc.keyword(t0, t1, o["text"], cx, ky)
+            kx = int(W * float(o["x"])) if "x" in o else cx
+            if "y" in o:
+                ky = int(H * float(o["y"]))
+            doc.keyword(t0, t1, o["text"], kx, ky, float(o.get("size", 0.09)))
         elif typ == "text":
             t0, t1 = tl.span(o["start"], o["end"])
             doc.headline(t0, t1, o["text"], cx, int(H * float(o.get("y", 0.15))), W * 0.86, o.get("kicker", ""))
     # watermark / progress
     wm = plan.get("watermark") or {}
     if wm.get("enabled") and wm.get("text") and not wm.get("logo"):
-        doc.watermark(content0 + 0.5, content1, wm["text"])
+        doc.watermark(content0 + 0.5, content1, wm["text"],
+                      bottom=wm.get("position") == "bottom" or bool((plan.get("headline") or {}).get("text")))
     if plan.get("progress_bar"):
         doc.progress_bar(content0, content1)
     doc.write(ass_path)
@@ -734,6 +918,7 @@ def cmd_render(a):
     fc.append("[pc][pm]alphamerge[pl]")
     fc.append("[g0][pl]overlay=format=auto:shortest=1[g1]")
     last = "g1"
+    last, idx = add_bg_layers(fc, inputs, idx, last, W, H, T, style, plan, work)
     if bg.get("particles", 0) > 0 and bg.get("particle_opacity", 0) > 0:
         sp = bg.get("particle_speed", 14)
         fc.append(f"[2:v]format=gray,crop={W}:{H}:x=0:y='{H}-mod(t*{sp},{H})',"
@@ -752,6 +937,12 @@ def cmd_render(a):
     else:
         fc.append(f"[{last}]null[bgm]")
     base = "bgm"
+    # scene words etc. live *behind* the speaker
+    bg_ass = os.path.join(work, "background.ass")
+    if build_bg_ass(plan, style, W, H, tl, bg_ass):
+        fc.append(f"[bgm]ass=filename='{ass_filter_path(bg_ass)}':fontsdir='{ass_filter_path(FONTS_DIR)}'"
+                  f":shaping=complex[bgm2]")
+        base = "bgm2"
 
     # ---- speaker layer
     fade_d = 0.45
@@ -926,6 +1117,9 @@ def cmd_preview(a):
     T = intro_d + tl.content + outro_d
     ass_path = os.path.join(work, "preview.ass")
     build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, T, ass_path, brand)
+    bg_ass = os.path.join(work, "preview_bg.ass")
+    bgf = (f"ass=filename={bg_ass}:fontsdir={FONTS_DIR.replace(':', chr(92) + ':')}:shaping=complex,"
+           if build_bg_ass(plan, style, W, H, tl, bg_ass) else "")
     times = [float(x) for x in a.at.split(",")] if a.at else [
         round(min(T - 0.1, x), 2) for x in (intro_d * 0.7, intro_d + 2.5, T * 0.5, T - outro_d * 0.4)]
     bgc = style["background"]["colors"][1].replace("#", "0x")
@@ -936,7 +1130,7 @@ def cmd_preview(a):
     for t in times:
         p = os.path.join(work, f"preview_{t:07.2f}.png")
         run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c={bgc}:s={W}x{H}:r=10:d={T + 1:.2f}",
-             "-vf", f"null{box},ass=filename={ass_path}:fontsdir={fdir}:shaping=complex,"
+             "-vf", f"{bgf}null{box},ass=filename={ass_path}:fontsdir={fdir}:shaping=complex,"
                     f"drawtext=fontfile={os.path.join(FONTS_DIR, 'Poppins-Bold.ttf')}:text='t={t:.2f}s':"
                     f"x=10:y=h-60:fontsize=40:fontcolor=red",
              "-ss", f"{t:.2f}", "-frames:v", "1", "-update", "1", p])
@@ -1024,6 +1218,16 @@ def main():
     p.add_argument("--device", default="cpu")
     p.add_argument("--prompt", help="vocabulary hint for whisper")
     p.set_defaults(fn=cmd_transcribe)
+
+    p = sub.add_parser("align", help="time a known transcript to the speech (no Whisper needed)")
+    p.add_argument("video")
+    p.add_argument("--text", required=True, help="text file or the text itself")
+    p.add_argument("--start", type=float)
+    p.add_argument("--end", type=float)
+    p.add_argument("--lang", default="ur")
+    p.add_argument("--noise", type=float, default=-30)
+    p.add_argument("--work")
+    p.set_defaults(fn=cmd_align)
 
     p = sub.add_parser("autoplan")
     p.add_argument("video")
