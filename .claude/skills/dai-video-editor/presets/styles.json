@@ -1,0 +1,179 @@
+{
+  "jtr-cinematic": {
+    "description": "Dark navy/teal cinematic look with gold accents, drifting Islamic geometric lattice and floating light dust. Serious, premium, institutional (Jamia/media-house) feel.",
+    "background": {
+      "colors": [
+        "#06111C",
+        "#0C2A35",
+        "#123A3E"
+      ],
+      "type": "radial",
+      "speed": 0.004,
+      "pattern_color": "#C9A55A",
+      "pattern_opacity": 0.1,
+      "pattern_drift": [
+        6,
+        3
+      ],
+      "particles": 38,
+      "particle_color": "#FFE7B0",
+      "particle_opacity": 0.55,
+      "particle_speed": 14,
+      "vignette": true
+    },
+    "accent": "#C9A55A",
+    "text": "#FFFFFF",
+    "muted": "#D8D1C2",
+    "panel": "#0A1822",
+    "captions": {
+      "size": 0.05,
+      "highlight": true,
+      "pop": false,
+      "box": false,
+      "max_words": 5,
+      "max_seconds": 2.6
+    },
+    "grade": "warm",
+    "zoom_cycle": [
+      1.0,
+      1.12,
+      1.0,
+      1.2
+    ],
+    "card_border": 4,
+    "card_radius": 28,
+    "progress_bar": false
+  },
+  "calm-scholar": {
+    "description": "Quiet, minimal, reflective (in the spirit of Maulana Wahiduddin Khan style talks): soft cream/sand background, gentle fades, few cuts, boxed captions, no flashy motion.",
+    "background": {
+      "colors": [
+        "#EFE8DA",
+        "#E3D7BF",
+        "#F6F1E7"
+      ],
+      "type": "linear",
+      "speed": 0.003,
+      "pattern_color": "#A8884A",
+      "pattern_opacity": 0.09,
+      "pattern_drift": [
+        3,
+        2
+      ],
+      "particles": 0,
+      "particle_color": "#FFFFFF",
+      "particle_opacity": 0.0,
+      "particle_speed": 8,
+      "vignette": false
+    },
+    "accent": "#8C6A2E",
+    "text": "#FFFFFF",
+    "on_background_text": "#2B2418",
+    "muted": "#5C5243",
+    "panel": "#2B2418",
+    "captions": {
+      "size": 0.044,
+      "highlight": false,
+      "pop": false,
+      "box": true,
+      "max_words": 7,
+      "max_seconds": 3.2
+    },
+    "grade": "neutral",
+    "zoom_cycle": [
+      1.0,
+      1.06
+    ],
+    "card_border": 3,
+    "card_radius": 22,
+    "progress_bar": false
+  },
+  "reel-dynamic": {
+    "description": "High-retention short-form reel (TikTok / Shorts / Instagram) like popular Islamic reel studios: deep emerald + gold, punchy punch-in cuts, word-by-word highlighted captions with pop, keyword pops, progress bar.",
+    "background": {
+      "colors": [
+        "#021A14",
+        "#06362A",
+        "#0B4A3A"
+      ],
+      "type": "radial",
+      "speed": 0.008,
+      "pattern_color": "#E2B85C",
+      "pattern_opacity": 0.12,
+      "pattern_drift": [
+        9,
+        5
+      ],
+      "particles": 55,
+      "particle_color": "#FFF1C9",
+      "particle_opacity": 0.65,
+      "particle_speed": 22,
+      "vignette": true
+    },
+    "accent": "#F2C14E",
+    "text": "#FFFFFF",
+    "muted": "#E6E1D3",
+    "panel": "#03140F",
+    "captions": {
+      "size": 0.058,
+      "highlight": true,
+      "pop": true,
+      "box": false,
+      "max_words": 3,
+      "max_seconds": 1.8
+    },
+    "grade": "cinematic",
+    "zoom_cycle": [
+      1.0,
+      1.18,
+      1.06,
+      1.25
+    ],
+    "card_border": 5,
+    "card_radius": 32,
+    "progress_bar": true
+  },
+  "maroon-classic": {
+    "description": "Warm maroon + gold, classical madrasa / bayan look. Good for long YouTube bayans and Juma khutbah clips.",
+    "background": {
+      "colors": [
+        "#1A0608",
+        "#3A0E14",
+        "#4A1A1A"
+      ],
+      "type": "radial",
+      "speed": 0.004,
+      "pattern_color": "#D4AF6A",
+      "pattern_opacity": 0.11,
+      "pattern_drift": [
+        5,
+        3
+      ],
+      "particles": 30,
+      "particle_color": "#FFE2B5",
+      "particle_opacity": 0.5,
+      "particle_speed": 12,
+      "vignette": true
+    },
+    "accent": "#D4AF6A",
+    "text": "#FFFFFF",
+    "muted": "#E8DCCB",
+    "panel": "#1A0608",
+    "captions": {
+      "size": 0.05,
+      "highlight": true,
+      "pop": false,
+      "box": false,
+      "max_words": 5,
+      "max_seconds": 2.6
+    },
+    "grade": "warm",
+    "zoom_cycle": [
+      1.0,
+      1.12
+    ],
+    "card_border": 4,
+    "card_radius": 26,
+    "progress_bar": false
+  }
+}

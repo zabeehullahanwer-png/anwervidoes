@@ -1,0 +1,9 @@
+# raw and edited videos are large: never commit them
+videos/
+*.mp4
+*.mov
+*.mkv
+*.m4a
+*.wav
+__pycache__/
+*.pyc
