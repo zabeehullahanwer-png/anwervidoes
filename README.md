@@ -28,5 +28,6 @@ The first time, Claude asks for your on-screen name, title and channel handle, a
 | `reel-dynamic` | emerald and gold, fast reels, word-highlighted captions |
 | `maroon-classic` | maroon and gold, classical bayan |
 
+Recording checklist (Urdu): [`RECORDING-GUIDE.md`](RECORDING-GUIDE.md).
 The details are in [`.claude/skills/dai-video-editor/SKILL.md`](.claude/skills/dai-video-editor/SKILL.md).
 Fonts (Amiri, Noto Nastaliq Urdu, Poppins, Hind) are bundled under the SIL Open Font License.
