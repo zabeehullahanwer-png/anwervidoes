@@ -161,6 +161,38 @@ def loudness(path):
             "lra": float(j["input_lra"]), "noise_floor_hint": float(j["input_thresh"])}
 
 
+def _avg_rgb(path, t, crop):
+    p = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", path, "-frames:v", "1", "-vf",
+                        f"{crop},scale=1:1:flags=area", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return tuple(p.stdout[:3]) if len(p.stdout) >= 3 else None
+
+
+def detect_screen(path, dur):
+    """Is this shot on a green / blue screen? Samples the top corners of a few frames."""
+    votes = []
+    for t in (dur * 0.2, dur * 0.5):
+        for crop in ("crop=iw*0.18:ih*0.10:0:0", "crop=iw*0.18:ih*0.10:iw*0.82:0"):
+            c = _avg_rgb(path, t, crop)
+            if c:
+                votes.append(c)
+    if not votes:
+        return None
+    r = sum(v[0] for v in votes) / len(votes)
+    g = sum(v[1] for v in votes) / len(votes)
+    b = sum(v[2] for v in votes) / len(votes)
+    if g > r + 45 and g > b + 45:
+        return {"type": "green", "color": "0x%02X%02X%02X" % (int(r), int(g), int(b))}
+    if b > r + 45 and b > g + 25:
+        return {"type": "blue", "color": "0x%02X%02X%02X" % (int(r), int(g), int(b))}
+    return None
+
+
+def sample_screen_color(video):
+    c = _avg_rgb(video, 0.5, "crop=iw:ih*0.08:0:0")
+    return "0x%02X%02X%02X" % c if c else None
+
+
 def q(t, fps=FPS):
     """quantise a time to the output frame grid (keeps A/V in sync over many cuts)"""
     return round(round(t * fps) / fps, 4)
@@ -215,13 +247,15 @@ def cmd_analyze(a):
          "-vsync", "vfr", "-q:v", "4", sheet])
     sheets = sorted(os.path.join(work, f) for f in os.listdir(work) if f.startswith("contact_"))
     speech = dur - sum(((e if e is not None else dur) - s) for s, e in sil)
+    screen = detect_screen(a.video, dur)
     res = {"source": os.path.abspath(a.video), "info": info, "loudness": loud, "silences": sil,
-           "speech_seconds": round(speech, 2), "contact_sheets": sheets, "contact_every_s": round(every, 2)}
+           "speech_seconds": round(speech, 2), "contact_sheets": sheets, "screen": screen, "contact_every_s": round(every, 2)}
     out = os.path.join(work, "analysis.json")
     save_json(out, res)
     print(json.dumps({"analysis": out, "duration": dur, "speech_seconds": round(speech, 1),
                       "silences": len(sil), "loudness": loud, "contact_sheets": sheets,
-                      "resolution": f"{info['width']}x{info['height']}", "fps": info["fps"]},
+                      "resolution": f"{info['width']}x{info['height']}", "fps": info["fps"],
+                      "green_or_blue_screen": screen},
                      ensure_ascii=False, indent=2))
 
 
@@ -327,7 +361,8 @@ def cmd_autoplan(a):
         seg_objs.append({"start": s, "end": e, "zoom": cycle[i % len(cycle)], "focus": [0.5, 0.40]})
     landscape = info["width"] > info["height"]
     fmt = a.format
-    layout = a.layout or ("frame" if fmt == "reel" and landscape else "fill")
+    screen = an.get("screen")
+    layout = a.layout or ("keyed" if screen else "frame" if fmt == "reel" and landscape else "fill")
     plan = {
         "source": os.path.abspath(a.video),
         "output": os.path.abspath(a.output or os.path.join(os.getcwd(), "videos", "edited",
@@ -335,12 +370,14 @@ def cmd_autoplan(a):
                                                            + f"_{fmt}.mp4")),
         "format": fmt,
         "layout": layout,
-        "card_aspect": "1:1" if landscape else "4:5",
+        "card_aspect": ("1:1" if landscape else "4:5") if layout == "frame" else None,
+        "keying": {"enabled": layout == "keyed", "screen": (screen or {}).get("type", "green"), "color": "auto",
+                   "similarity": 0.13, "blend": 0.05, "despill": 0.15},
         "style": a.style,
         "language": a.lang,
         "grade": style["grade"],
         "segments": seg_objs,
-        "headline": {"text": "", "kicker": brand.get("series", "")} if layout == "frame" else None,
+        "headline": {"text": "", "kicker": brand.get("series", "")} if layout in ("frame", "keyed") else None,
         "captions": {"enabled": True, "items": []},
         "overlays": [],
         "intro": {"enabled": True, "duration": 2.8,
@@ -425,6 +462,16 @@ def layer_geometry(plan, W, H, src_w, src_h):
     """Where the speaker goes on the canvas."""
     if plan["layout"] == "fill":
         return {"x": 0, "y": 0, "w": W, "h": H, "card": False}
+    if plan["layout"] == "keyed":
+        # green-screen: speaker cut out and standing in the animated studio, anchored to the bottom
+        asp = parse_aspect(plan.get("card_aspect") or f"{src_w}:{src_h}")
+        sc = float(plan.get("keyed_scale", 1.0))
+        w = even(W * sc)
+        h = even(w / asp)
+        if h > H * sc:
+            h = even(H * sc)
+            w = even(h * asp)
+        return {"x": even((W - w) / 2), "y": H - h, "w": w, "h": h, "card": False, "keyed": True}
     asp = parse_aspect(plan.get("card_aspect") or f"{src_w}:{src_h}")
     if H > W:  # vertical reel
         cw = even(W * 0.89)
@@ -535,8 +582,9 @@ def build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, total, ass_path, bra
         doc.outro(content1 + 0.2, total, ot.get("name", ""), ot.get("cta", ""), ot.get("handle", ""), on_bg)
     # headline above the card
     hl = plan.get("headline") or {}
-    if geo["card"] and hl.get("text") and H > W:
-        doc.headline(content0 + 0.2, content1, hl["text"], cx, int(geo["y"] * 0.55), W * 0.86, hl.get("kicker", ""))
+    if (geo["card"] or geo.get("keyed")) and hl.get("text") and H > W:
+        hy = int(geo["y"] * 0.55) if geo["card"] else int(H * float(hl.get("y", 0.115)))
+        doc.headline(content0 + 0.2, content1, hl["text"], cx, hy, W * 0.86, hl.get("kicker", ""))
     # captions
     cap = plan.get("captions") or {}
     if cap.get("enabled", True):
@@ -588,6 +636,8 @@ def build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, total, ass_path, bra
             t0, t1 = tl.span(o["start"], o["end"])
             if geo["card"]:
                 ky = int(geo["y"] + geo["h"] * 0.18)
+            elif geo.get("keyed"):
+                ky = int(H * float(o.get("y", 0.52)))
             else:
                 ky = int(H * (0.30 if H > W else 0.22))
             doc.keyword(t0, t1, o["text"], cx, ky)
@@ -731,9 +781,21 @@ def cmd_render(a):
         fc.append(f"[{base}][plt]overlay=x={geo['x'] - pad}:y={geo['y'] - pad}:eof_action=pass:format=auto[b1]")
         fc.append(f"[b1][spk]overlay=x={geo['x']}:y={geo['y']}:eof_action=pass:format=auto[b2]")
     else:
-        fc.append(sp + f",fade=t=in:st={c0:.3f}:d={fade_d}:alpha=1,"
-                       f"fade=t=out:st={c1 - fade_d:.3f}:d={fade_d}:alpha=1[spk]")
-        fc.append(f"[{base}][spk]overlay=0:0:eof_action=pass:format=auto[b2]")
+        key = ""
+        kc = plan.get("keying") or {}
+        if kc.get("enabled"):
+            col = kc.get("color", "auto")
+            if col == "auto":
+                col = sample_screen_color(speaker) or "0x00FF00"
+            key = (f",format=yuva444p,chromakey=color={col}:similarity={kc.get('similarity', 0.13)}"
+                   f":blend={kc.get('blend', 0.05)}")
+            if kc.get("despill", 0.25):
+                key += f",format=gbrap,despill=type={kc.get('screen', 'green')}:mix={kc.get('despill', 0.25)}:expand=0"
+            key += ",format=yuva420p"
+            log("chroma key", col)
+        fc.append(sp + key + f",fade=t=in:st={c0:.3f}:d={fade_d}:alpha=1,"
+                             f"fade=t=out:st={c1 - fade_d:.3f}:d={fade_d}:alpha=1[spk]")
+        fc.append(f"[{base}][spk]overlay=x={geo['x']}:y={geo['y']}:eof_action=pass:format=auto[b2]")
     cur = "b2"
 
     # ---- full-screen background cut-aways for quote cards
@@ -967,7 +1029,7 @@ def main():
     p.add_argument("video")
     p.add_argument("--work")
     p.add_argument("--format", choices=list(FORMATS), default="reel")
-    p.add_argument("--layout", choices=["frame", "fill"])
+    p.add_argument("--layout", choices=["frame", "fill", "keyed"])
     p.add_argument("--style", help="default: brand style or jtr-cinematic")
     p.add_argument("--lang", help="caption language ur|ar|hi|en (default: brand or ur)")
     p.add_argument("--brand")

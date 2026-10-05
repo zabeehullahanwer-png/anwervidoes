@@ -51,6 +51,11 @@ $DAI analyze videos/raw/X.mp4          # probe, silence map, loudness, contact s
 $DAI transcribe videos/raw/X.mp4 --lang ur   # ur | hi | ar | en | auto  (model: --model medium)
 ```
 
+* **Green / blue screen?** `analyze` detects it (`green_or_blue_screen`) and `autoplan` then picks
+  `layout: keyed`. The speaker is cut out and placed directly in the animated studio, which is the most professional
+  look the engine can make. Check the key in `preview`/`frames`. If edges flicker, raise `keying.similarity`
+  (0.13 → 0.16). If clothes turn pink, lower `keying.despill`. Use a zoom of at least 1.06 so the chair or
+  set edges at the frame border are cut off.
 * **Read the contact sheet images** (`contact_*.jpg`). Note where the face is, so you can set `focus`. Note the
   framing, the lighting (for the grade), and any distractions such as a phone ringing or someone walking in.
 * Read `transcript.txt` from start to end like an editor. Understand the talk: the topic, the strongest line

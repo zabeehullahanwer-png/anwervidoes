@@ -10,6 +10,10 @@ maps them through the kept segments. An overlay whose span falls entirely inside
   "format": "reel",              // reel 1080x1920 | youtube 1920x1080 | square 1080x1080
   "layout": "frame",             // frame: speaker in a rounded gold-bordered card over the animated background
                                  // fill:  speaker fills the screen (background shows in intro/outro/cards)
+                                 // keyed: green/blue-screen speaker cut out over the animated background
+  "keying": {"enabled": true, "screen": "green", "color": "auto",   // auto = sampled after grading
+             "similarity": 0.13, "blend": 0.05, "despill": 0.15},   // keyed layout only
+  "keyed_scale": 1.0,            // keyed: speaker width as a fraction of the canvas (bottom-anchored)
   "card_aspect": "1:1",          // frame layout only: crop of the speaker card ("1:1", "4:5", "16:9", "3:4")
   "style": "jtr-cinematic",      // key in presets/styles.json
   "language": "ur",              // caption/UI script: ur | ar | hi | en
