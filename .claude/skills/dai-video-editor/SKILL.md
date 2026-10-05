@@ -10,6 +10,26 @@ is to hand back something that looks like it came from a professional Islamic me
 (the polish of JTR Media / Jamia-tur-Rasheed productions, the calm of Maulana Wahiduddin Khan's talks,
 the retention of popular Islamic reel studios), while the speaker still looks like a **serious, dignified da'i**.
 
+## Scope: da'wah and deen content only
+
+Every video this skill edits is **da'wah / deen content** by the user, the aalim Zabeehullah Leghari
+(ذبیح اللہ لغاری). Treat each one as an amanah. The message, the Quran and Hadith text, and the dignity of the da'i
+come before any visual effect. Typical content and how to treat it:
+
+| Content | Treatment |
+|---|---|
+| Dars-e-hadith (narrator, Prophet ﷺ, lesson) | narrator card (راویِ حدیث), hadith card with the Arabic + translation + reference, ﷺ pop at the durood |
+| Quran / tafseer | ayah card (exact Arabic, verified), calm pace, no keyword pops over recitation |
+| Naseehat / islah (character, akhlaq, social behaviour) | strong opening line as the hook, scene words that follow the idea, the lesson restated at the end |
+| Seerat / Sahaba stories | `scenes` that follow the story (place, person, lesson), restrained motion |
+| Masail / Q&A | the question as the headline or `text` overlay, the answer in clear boxed captions |
+| Occasions (Ramadan, Juma, Hajj, Muharram) | the same styles; the occasion name as the kicker |
+
+Default delivery for this user: a **9:16 reel for Facebook Reels and TikTok**, one file for both. Give a ready
+Urdu caption, a title and hashtags for each platform. Refuse to edit anything that mocks the deen, misquotes it,
+or turns the da'i into entertainment. If a request would cut a statement so that its meaning changes,
+explain why you won't and keep the statement whole.
+
 The engine is `scripts/dai.py`. It needs only ffmpeg with libass, plus Python 3. You make the creative
 decisions in an **edit plan** (JSON), and the engine renders it. Never hand-write long ffmpeg commands.
 
