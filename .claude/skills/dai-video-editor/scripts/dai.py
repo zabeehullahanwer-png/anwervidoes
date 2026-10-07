@@ -70,7 +70,8 @@ def log(*a):
 def run(cmd, quiet=True):
     if not quiet:
         log(" ".join(cmd))
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                       encoding="utf-8", errors="replace")
     if p.returncode != 0:
         sys.stderr.write(p.stderr[-4000:])
         raise SystemExit(f"command failed: {cmd[0]} (exit {p.returncode})")
@@ -135,7 +136,8 @@ def probe(path):
 def silences(path, noise_db=-35, min_d=0.45):
     p = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-vn",
                         "-af", f"highpass=f=100,silencedetect=noise={noise_db}dB:d={min_d}",
-                        "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                        "-f", "null", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                       encoding="utf-8", errors="replace")
     out, cur = [], None
     for line in p.stderr.splitlines():
         m = re.search(r"silence_start: ([\d.]+)", line)
@@ -153,7 +155,8 @@ def silences(path, noise_db=-35, min_d=0.45):
 def loudness(path):
     p = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-vn",
                         "-af", "loudnorm=print_format=json", "-f", "null", "-"],
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                       encoding="utf-8", errors="replace")
     m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", p.stderr, re.S)
     if not m:
         return {}
@@ -243,7 +246,7 @@ def cmd_analyze(a):
     every = max(1.0, dur / 48.0)
     sheet = os.path.join(work, "contact_%02d.jpg")
     run(["ffmpeg", "-y", "-v", "error", "-i", a.video, "-vf",
-         f"fps=1/{every:.3f},scale=320:-2,drawtext=fontfile={os.path.join(FONTS_DIR, 'Poppins-SemiBold.ttf')}:"
+         f"fps=1/{every:.3f},scale=320:-2,drawtext=fontfile='{ass_filter_path(os.path.join(FONTS_DIR, 'Poppins-SemiBold.ttf'))}':"
          f"text='%{{pts\\:hms}}':x=6:y=6:fontsize=18:fontcolor=white:box=1:boxcolor=black@0.6,tile=4x4",
          "-vsync", "vfr", "-q:v", "4", sheet])
     sheets = sorted(os.path.join(work, f) for f in os.listdir(work) if f.startswith("contact_"))
@@ -645,7 +648,7 @@ def cut_segments(plan, info, geo, work, draft):
     listfile = os.path.join(segdir, "list.txt")
     with open(listfile, "w") as f:
         for p in lst:
-            f.write(f"file '{p}'\n")
+            f.write("file '%s'\n" % p.replace("\\", "/"))  # forward slashes: safe on Windows too
     speaker = os.path.join(work, "speaker.mkv")
     run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", listfile, "-c", "copy", speaker])
     return speaker
@@ -848,7 +851,8 @@ def clean_voice(speaker, work, au):
     target = float(au.get("loudness", -14))
     p = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", speaker, "-vn", "-af",
                         pre + f",loudnorm=I={target}:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"],
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                       encoding="utf-8", errors="replace")
     m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", p.stderr, re.S)
     ln = f"loudnorm=I={target}:TP=-1.5:LRA=11"
     if m:
@@ -1118,20 +1122,20 @@ def cmd_preview(a):
     ass_path = os.path.join(work, "preview.ass")
     build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, T, ass_path, brand)
     bg_ass = os.path.join(work, "preview_bg.ass")
-    bgf = (f"ass=filename={bg_ass}:fontsdir={FONTS_DIR.replace(':', chr(92) + ':')}:shaping=complex,"
+    bgf = (f"ass=filename='{ass_filter_path(bg_ass)}':fontsdir='{ass_filter_path(FONTS_DIR)}':shaping=complex,"
            if build_bg_ass(plan, style, W, H, tl, bg_ass) else "")
     times = [float(x) for x in a.at.split(",")] if a.at else [
         round(min(T - 0.1, x), 2) for x in (intro_d * 0.7, intro_d + 2.5, T * 0.5, T - outro_d * 0.4)]
     bgc = style["background"]["colors"][1].replace("#", "0x")
-    fdir = FONTS_DIR.replace(":", "\\:")
     box = (f",drawbox=x={geo['x']}:y={geo['y']}:w={geo['w']}:h={geo['h']}:color=gray@0.6:t=fill:"
            f"enable='between(t,{intro_d},{intro_d + tl.content})'") if geo["card"] else ""
     tiles = []
     for t in times:
         p = os.path.join(work, f"preview_{t:07.2f}.png")
         run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c={bgc}:s={W}x{H}:r=10:d={T + 1:.2f}",
-             "-vf", f"{bgf}null{box},ass=filename={ass_path}:fontsdir={fdir}:shaping=complex,"
-                    f"drawtext=fontfile={os.path.join(FONTS_DIR, 'Poppins-Bold.ttf')}:text='t={t:.2f}s':"
+             "-vf", f"{bgf}null{box},ass=filename='{ass_filter_path(ass_path)}':fontsdir='{ass_filter_path(FONTS_DIR)}'"
+                    f":shaping=complex,drawtext=fontfile='{ass_filter_path(os.path.join(FONTS_DIR, 'Poppins-Bold.ttf'))}':"
+                    f"text='t={t:.2f}s':"
                     f"x=10:y=h-60:fontsize=40:fontcolor=red",
              "-ss", f"{t:.2f}", "-frames:v", "1", "-update", "1", p])
         tiles.append(p)

@@ -37,6 +37,11 @@ decisions in an **edit plan** (JSON), and the engine renders it. Never hand-writ
 DAI="python3 .claude/skills/dai-video-editor/scripts/dai.py"
 ```
 
+On **Windows** (the user's laptop) use `py` instead of `python3`, for example
+`py .claude/skills/dai-video-editor/scripts/dai.py doctor`. Use forward slashes or quoted paths.
+Install missing tools with `winget install Gyan.FFmpeg`, `winget install Python.Python.3.12`,
+and `py -m pip install faster-whisper`.
+
 ## 0. One-time setup (first use only)
 
 1. `$DAI doctor`. It must end with `READY`. If ffmpeg is missing, tell the user how to install it
