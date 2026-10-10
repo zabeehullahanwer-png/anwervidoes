@@ -116,8 +116,8 @@ def microphone():
     foam = mat("foam", (0.004, 0.004, 0.005), rough=1.0)
     metal = mat("arm", (0.03, 0.03, 0.035), rough=0.3, metal=0.8)
     chrome = mat("chrome", (0.6, 0.6, 0.62), rough=0.18, metal=1.0)
-    mouth = (0.0, 0.0, 1.08)
-    head = (0.17, -0.22, 0.93)
+    mouth = (0.0, 0.0, 1.07)
+    head = (0.07, -0.30, 0.95)   # in front of the chest, just below the mouth
     coll = bpy.data.collections.new("mic")
     bpy.context.scene.collection.children.link(coll)
     objs = []
@@ -167,9 +167,9 @@ def microphone():
         coll.objects.link(t)
         return t
     back_pt = (head[0] + 0.03, head[1] + 0.05, head[2] - 0.08)
-    elbow = (0.62, -0.05, 0.55)
+    elbow = (0.30, -0.42, 0.55)
     tube(back_pt, elbow, 0.011)
-    tube(elbow, (1.4, 0.3, 0.9), 0.011)
+    tube(elbow, (0.95, -0.30, 0.40), 0.011)
     tube((back_pt[0] + 0.01, back_pt[1], back_pt[2]), (elbow[0] + 0.01, elbow[1], elbow[2] + 0.02), 0.004)
     objs.append(coll)
     return coll
@@ -230,15 +230,17 @@ def render(sc, path, preview, transparent):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", action="store_true")
+    ap.add_argument("--mic-only", action="store_true", help="re-render only the microphone layer")
     a = ap.parse_args(sys.argv[1:])
     os.makedirs(OUT, exist_ok=True)
     rnd = random.Random(7)
 
     # 1) background plate
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    sc = camera_and_world()
-    shelves(rnd)
-    render(sc, os.path.join(OUT, "study_bg.png"), a.preview, False)
+    if not a.mic_only:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        sc = camera_and_world()
+        shelves(rnd)
+        render(sc, os.path.join(OUT, "study_bg.png"), a.preview, False)
 
     # 2) microphone layer (same camera & lights, transparent; shelves hidden but kept for reflections)
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -250,6 +252,9 @@ def main():
     microphone()
     for o in bpy.data.collections["mic"].all_objects:
         o.visible_camera = True
+    # the mic sits ~30 cm in front of the sitter: keep it crisp (a real shot would stop down)
+    sc.camera.data.dof.focus_distance = 2.72
+    sc.camera.data.dof.aperture_fstop = 5.6
     render(sc, os.path.join(OUT, "study_mic.png"), a.preview, True)
 
 
