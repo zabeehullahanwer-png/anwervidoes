@@ -784,6 +784,13 @@ def build_ass(plan, style, W, H, geo, tl, intro_d, outro_d, total, ass_path, bra
         for i in range(len(chunks) - 1):
             if chunks[i]["end"] > chunks[i + 1]["start"]:
                 chunks[i]["end"] = chunks[i + 1]["start"]
+        # a caption that starts before a card must end when the card starts
+        for c in chunks:
+            for b0, b1 in blocks:
+                if c["start"] < b0 < c["end"]:
+                    c["end"] = b0
+                    if c.get("words"):
+                        c["words"] = [w for w in c["words"] if w["s"] < b0] or c["words"][:1]
         if cap.get("style"):  # per-video override, e.g. {"box": true} over light clothing
             doc.style = dict(doc.style, captions=dict(doc.style["captions"], **cap["style"]))
         doc.captions(chunks, cap_y)

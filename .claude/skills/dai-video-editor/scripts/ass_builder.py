@@ -339,7 +339,10 @@ class AssDoc:
                 continue
             scr, _fn = self.font_for(text, prefer)
             sz = self.size(frac, scr)
-            heights.append(est_lines(text, sz, scr, area_w) * sz * LINE_FACTOR[scr] * 0.85 + self.base * 0.035)
+            n = est_lines(text, sz, scr, area_w)
+            # extra wrapped lines advance by ~one libass font size (Nastaliq/Amiri boxes are tall)
+            heights.append(sz * LINE_FACTOR[scr] * 0.85 + (n - 1) * sz * (1.0 if scr in ("urdu", "arabic") else 1.1)
+                           + self.base * 0.035)
         total = sum(heights)
         y = max(H * 0.08, H * 0.47 - total / 2)
         margin = int((W - area_w) / 2)
