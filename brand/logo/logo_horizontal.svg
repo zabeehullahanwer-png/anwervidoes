@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="760" viewBox="0 0 2400 760">
+<defs>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FBEBB5"/><stop offset="0.45" stop-color="#D9B465"/>
+    <stop offset="0.75" stop-color="#B8893A"/><stop offset="1" stop-color="#E8C77A"/>
+  </linearGradient>
+  <linearGradient id="goldH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#B8893A" stop-opacity="0"/><stop offset="0.5" stop-color="#E8C77A"/>
+    <stop offset="1" stop-color="#B8893A" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="bg" cx="0.5" cy="0.45" r="0.75">
+    <stop offset="0" stop-color="#0E2E3A"/><stop offset="1" stop-color="#071522"/>
+  </radialGradient>
+  <radialGradient id="disc" cx="0.5" cy="0.4" r="0.6">
+    <stop offset="0" stop-color="#123A46"/><stop offset="1" stop-color="#06121C"/>
+  </radialGradient>
+</defs><rect width="2400" height="760" fill="url(#bg)"/>
+<circle cx="390" cy="380" r="300" fill="url(#disc)"/>
+<circle cx="390" cy="380" r="300" fill="none" stroke="url(#gold)" stroke-width="10.5"/>
+<circle cx="390" cy="380" r="279.0" fill="none" stroke="url(#gold)" stroke-width="3.0" opacity="0.8"/>
+<circle cx="679.5" cy="380.0" r="2.4" fill="#E8C77A"/>
+<circle cx="677.0" cy="417.8" r="2.4" fill="#E8C77A"/>
+<circle cx="669.6" cy="454.9" r="2.4" fill="#E8C77A"/>
+<circle cx="657.5" cy="490.8" r="2.4" fill="#E8C77A"/>
+<circle cx="640.7" cy="524.8" r="2.4" fill="#E8C77A"/>
+<circle cx="619.7" cy="556.2" r="2.4" fill="#E8C77A"/>
+<circle cx="594.7" cy="584.7" r="2.4" fill="#E8C77A"/>
+<circle cx="566.2" cy="609.7" r="2.4" fill="#E8C77A"/>
+<circle cx="534.8" cy="630.7" r="2.4" fill="#E8C77A"/>
+<circle cx="500.8" cy="647.5" r="2.4" fill="#E8C77A"/>
+<circle cx="464.9" cy="659.6" r="2.4" fill="#E8C77A"/>
+<circle cx="427.8" cy="667.0" r="2.4" fill="#E8C77A"/>
+<circle cx="390.0" cy="669.5" r="2.4" fill="#E8C77A"/>
+<circle cx="352.2" cy="667.0" r="2.4" fill="#E8C77A"/>
+<circle cx="315.1" cy="659.6" r="2.4" fill="#E8C77A"/>
+<circle cx="279.2" cy="647.5" r="2.4" fill="#E8C77A"/>
+<circle cx="245.3" cy="630.7" r="2.4" fill="#E8C77A"/>
+<circle cx="213.8" cy="609.7" r="2.4" fill="#E8C77A"/>
+<circle cx="185.3" cy="584.7" r="2.4" fill="#E8C77A"/>
+<circle cx="160.3" cy="556.2" r="2.4" fill="#E8C77A"/>
+<circle cx="139.3" cy="524.8" r="2.4" fill="#E8C77A"/>
+<circle cx="122.5" cy="490.8" r="2.4" fill="#E8C77A"/>
+<circle cx="110.4" cy="454.9" r="2.4" fill="#E8C77A"/>
+<circle cx="103.0" cy="417.8" r="2.4" fill="#E8C77A"/>
+<circle cx="100.5" cy="380.0" r="2.4" fill="#E8C77A"/>
+<circle cx="103.0" cy="342.2" r="2.4" fill="#E8C77A"/>
+<circle cx="110.4" cy="305.1" r="2.4" fill="#E8C77A"/>
+<circle cx="122.5" cy="269.2" r="2.4" fill="#E8C77A"/>
+<circle cx="139.3" cy="235.3" r="2.4" fill="#E8C77A"/>
+<circle cx="160.3" cy="203.8" r="2.4" fill="#E8C77A"/>
+<circle cx="185.3" cy="175.3" r="2.4" fill="#E8C77A"/>
+<circle cx="213.8" cy="150.3" r="2.4" fill="#E8C77A"/>
+<circle cx="245.2" cy="129.3" r="2.4" fill="#E8C77A"/>
+<circle cx="279.2" cy="112.5" r="2.4" fill="#E8C77A"/>
+<circle cx="315.1" cy="100.4" r="2.4" fill="#E8C77A"/>
+<circle cx="352.2" cy="93.0" r="2.4" fill="#E8C77A"/>
+<circle cx="390.0" cy="90.5" r="2.4" fill="#E8C77A"/>
+<circle cx="427.8" cy="93.0" r="2.4" fill="#E8C77A"/>
+<circle cx="464.9" cy="100.4" r="2.4" fill="#E8C77A"/>
+<circle cx="500.8" cy="112.5" r="2.4" fill="#E8C77A"/>
+<circle cx="534.8" cy="129.3" r="2.4" fill="#E8C77A"/>
+<circle cx="566.2" cy="150.3" r="2.4" fill="#E8C77A"/>
+<circle cx="594.7" cy="175.3" r="2.4" fill="#E8C77A"/>
+<circle cx="619.7" cy="203.8" r="2.4" fill="#E8C77A"/>
+<circle cx="640.7" cy="235.2" r="2.4" fill="#E8C77A"/>
+<circle cx="657.5" cy="269.2" r="2.4" fill="#E8C77A"/>
+<circle cx="669.6" cy="305.1" r="2.4" fill="#E8C77A"/>
+<circle cx="677.0" cy="342.2" r="2.4" fill="#E8C77A"/>
+<path d="M390.0,116.0 L633.9,481.0 M491.0,136.1 L576.7,566.7 M576.7,193.3 L491.0,623.9 M633.9,279.0 L390.0,644.0 M654.0,380.0 L289.0,623.9 M633.9,481.0 L203.3,566.7 M576.7,566.7 L146.1,481.0 M491.0,623.9 L126.0,380.0 M390.0,644.0 L146.1,279.0 M289.0,623.9 L203.3,193.3 M203.3,566.7 L289.0,136.1 M146.1,481.0 L390.0,116.0 M126.0,380.0 L491.0,136.1 M146.1,279.0 L576.7,193.3 M203.3,193.3 L633.9,279.0 M289.0,136.1 L654.0,380.0 " stroke="url(#gold)" stroke-width="1.8" fill="none" opacity="0.45"/>
+<path d="M390.0,140.0 L454.9,223.3 L559.7,210.3 L546.7,315.1 L630.0,380.0 L546.7,444.9 L559.7,549.7 L454.9,536.7 L390.0,620.0 L325.1,536.7 L220.3,549.7 L233.3,444.9 L150.0,380.0 L233.3,315.1 L220.3,210.3 L325.1,223.3 Z" fill="#0A1E29" stroke="url(#gold)" stroke-width="6.6" stroke-linejoin="round"/>
+<path d="M390.0,164.0 L448.4,239.0 L542.7,227.3 L531.0,321.6 L606.0,380.0 L531.0,438.4 L542.7,532.7 L448.4,521.0 L390.0,596.0 L331.6,521.0 L237.3,532.7 L249.0,438.4 L174.0,380.0 L249.0,321.6 L237.3,227.3 L331.6,239.0 Z" fill="none" stroke="url(#gold)" stroke-width="2.4" opacity="0.7"/>
+<circle cx="390" cy="380" r="156.0" fill="none" stroke="url(#gold)" stroke-width="2.4" opacity="0.7"/><text x="390" y="430" font-family="Amiri" font-weight="bold" font-size="210" fill="url(#gold)" text-anchor="middle">ذ</text><text x="1560" y="390" font-family="Noto Nastaliq Urdu" font-weight="bold" font-size="150" fill="url(#gold)" text-anchor="middle" direction="rtl">ذبیح اللہ لغاری</text><rect x="1040" y="468.5" width="1040" height="3" fill="url(#goldH)"/><path d="M1560,458 L1572,470 L1560,482 L1548,470 Z" fill="#E8C77A"/><text x="1560" y="590" font-family="Poppins" font-weight="600" font-size="78" letter-spacing="14" fill="#F3E6C4" text-anchor="middle">ZABEEHULLAH LEGHARI</text>
+</svg>

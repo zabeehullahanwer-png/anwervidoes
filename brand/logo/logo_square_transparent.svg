@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+<defs>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FBEBB5"/><stop offset="0.45" stop-color="#D9B465"/>
+    <stop offset="0.75" stop-color="#B8893A"/><stop offset="1" stop-color="#E8C77A"/>
+  </linearGradient>
+  <linearGradient id="goldH" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#B8893A" stop-opacity="0"/><stop offset="0.5" stop-color="#E8C77A"/>
+    <stop offset="1" stop-color="#B8893A" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="bg" cx="0.5" cy="0.45" r="0.75">
+    <stop offset="0" stop-color="#0E2E3A"/><stop offset="1" stop-color="#071522"/>
+  </radialGradient>
+  <radialGradient id="disc" cx="0.5" cy="0.4" r="0.6">
+    <stop offset="0" stop-color="#123A46"/><stop offset="1" stop-color="#06121C"/>
+  </radialGradient>
+</defs>
+<circle cx="540" cy="470" r="330" fill="url(#disc)"/>
+<circle cx="540" cy="470" r="330" fill="none" stroke="url(#gold)" stroke-width="11.6"/>
+<circle cx="540" cy="470" r="306.9" fill="none" stroke="url(#gold)" stroke-width="3.3" opacity="0.8"/>
+<circle cx="858.5" cy="470.0" r="2.6" fill="#E8C77A"/>
+<circle cx="855.7" cy="511.6" r="2.6" fill="#E8C77A"/>
+<circle cx="847.6" cy="552.4" r="2.6" fill="#E8C77A"/>
+<circle cx="834.2" cy="591.9" r="2.6" fill="#E8C77A"/>
+<circle cx="815.8" cy="629.2" r="2.6" fill="#E8C77A"/>
+<circle cx="792.6" cy="663.9" r="2.6" fill="#E8C77A"/>
+<circle cx="765.2" cy="695.2" r="2.6" fill="#E8C77A"/>
+<circle cx="733.9" cy="722.6" r="2.6" fill="#E8C77A"/>
+<circle cx="699.2" cy="745.8" r="2.6" fill="#E8C77A"/>
+<circle cx="661.9" cy="764.2" r="2.6" fill="#E8C77A"/>
+<circle cx="622.4" cy="777.6" r="2.6" fill="#E8C77A"/>
+<circle cx="581.6" cy="785.7" r="2.6" fill="#E8C77A"/>
+<circle cx="540.0" cy="788.5" r="2.6" fill="#E8C77A"/>
+<circle cx="498.4" cy="785.7" r="2.6" fill="#E8C77A"/>
+<circle cx="457.6" cy="777.6" r="2.6" fill="#E8C77A"/>
+<circle cx="418.1" cy="764.2" r="2.6" fill="#E8C77A"/>
+<circle cx="380.8" cy="745.8" r="2.6" fill="#E8C77A"/>
+<circle cx="346.1" cy="722.6" r="2.6" fill="#E8C77A"/>
+<circle cx="314.8" cy="695.2" r="2.6" fill="#E8C77A"/>
+<circle cx="287.4" cy="663.9" r="2.6" fill="#E8C77A"/>
+<circle cx="264.2" cy="629.2" r="2.6" fill="#E8C77A"/>
+<circle cx="245.8" cy="591.9" r="2.6" fill="#E8C77A"/>
+<circle cx="232.4" cy="552.4" r="2.6" fill="#E8C77A"/>
+<circle cx="224.3" cy="511.6" r="2.6" fill="#E8C77A"/>
+<circle cx="221.6" cy="470.0" r="2.6" fill="#E8C77A"/>
+<circle cx="224.3" cy="428.4" r="2.6" fill="#E8C77A"/>
+<circle cx="232.4" cy="387.6" r="2.6" fill="#E8C77A"/>
+<circle cx="245.8" cy="348.1" r="2.6" fill="#E8C77A"/>
+<circle cx="264.2" cy="310.8" r="2.6" fill="#E8C77A"/>
+<circle cx="287.4" cy="276.1" r="2.6" fill="#E8C77A"/>
+<circle cx="314.8" cy="244.8" r="2.6" fill="#E8C77A"/>
+<circle cx="346.1" cy="217.4" r="2.6" fill="#E8C77A"/>
+<circle cx="380.8" cy="194.2" r="2.6" fill="#E8C77A"/>
+<circle cx="418.1" cy="175.8" r="2.6" fill="#E8C77A"/>
+<circle cx="457.6" cy="162.4" r="2.6" fill="#E8C77A"/>
+<circle cx="498.4" cy="154.3" r="2.6" fill="#E8C77A"/>
+<circle cx="540.0" cy="151.6" r="2.6" fill="#E8C77A"/>
+<circle cx="581.6" cy="154.3" r="2.6" fill="#E8C77A"/>
+<circle cx="622.4" cy="162.4" r="2.6" fill="#E8C77A"/>
+<circle cx="661.9" cy="175.8" r="2.6" fill="#E8C77A"/>
+<circle cx="699.2" cy="194.2" r="2.6" fill="#E8C77A"/>
+<circle cx="733.9" cy="217.4" r="2.6" fill="#E8C77A"/>
+<circle cx="765.2" cy="244.8" r="2.6" fill="#E8C77A"/>
+<circle cx="792.6" cy="276.1" r="2.6" fill="#E8C77A"/>
+<circle cx="815.8" cy="310.8" r="2.6" fill="#E8C77A"/>
+<circle cx="834.2" cy="348.1" r="2.6" fill="#E8C77A"/>
+<circle cx="847.6" cy="387.6" r="2.6" fill="#E8C77A"/>
+<circle cx="855.7" cy="428.4" r="2.6" fill="#E8C77A"/>
+<path d="M540.0,179.6 L808.3,581.1 M651.1,201.7 L745.3,675.3 M745.3,264.7 L651.1,738.3 M808.3,358.9 L540.0,760.4 M830.4,470.0 L428.9,738.3 M808.3,581.1 L334.7,675.3 M745.3,675.3 L271.7,581.1 M651.1,738.3 L249.6,470.0 M540.0,760.4 L271.7,358.9 M428.9,738.3 L334.7,264.7 M334.7,675.3 L428.9,201.7 M271.7,581.1 L540.0,179.6 M249.6,470.0 L651.1,201.7 M271.7,358.9 L745.3,264.7 M334.7,264.7 L808.3,358.9 M428.9,201.7 L830.4,470.0 " stroke="url(#gold)" stroke-width="2.0" fill="none" opacity="0.45"/>
+<path d="M540.0,206.0 L611.4,297.6 L726.7,283.3 L712.4,398.6 L804.0,470.0 L712.4,541.4 L726.7,656.7 L611.4,642.4 L540.0,734.0 L468.6,642.4 L353.3,656.7 L367.6,541.4 L276.0,470.0 L367.6,398.6 L353.3,283.3 L468.6,297.6 Z" fill="#0A1E29" stroke="url(#gold)" stroke-width="7.3" stroke-linejoin="round"/>
+<path d="M540.0,232.4 L604.3,314.9 L708.0,302.0 L695.1,405.7 L777.6,470.0 L695.1,534.3 L708.0,638.0 L604.3,625.1 L540.0,707.6 L475.7,625.1 L372.0,638.0 L384.9,534.3 L302.4,470.0 L384.9,405.7 L372.0,302.0 L475.7,314.9 Z" fill="none" stroke="url(#gold)" stroke-width="2.6" opacity="0.7"/>
+<circle cx="540" cy="470" r="171.6" fill="none" stroke="url(#gold)" stroke-width="2.6" opacity="0.7"/>
+<text x="540" y="463.4" font-family="Noto Nastaliq Urdu" font-size="75.9" fill="url(#gold)" text-anchor="middle" direction="rtl">ذبیح اللہ</text>
+<text x="540" y="575.6" font-family="Noto Nastaliq Urdu" font-size="62.7" fill="#F3E6C4" text-anchor="middle" direction="rtl">لغاری</text><text x="540" y="935" font-family="Poppins" font-weight="600" font-size="46" letter-spacing="9" fill="url(#gold)" text-anchor="middle">ZABEEHULLAH LEGHARI</text><rect x="310" y="868.5" width="460" height="3" fill="url(#goldH)"/><path d="M540,861 L549,870 L540,879 L531,870 Z" fill="#E8C77A"/>
+</svg>
