@@ -7,3 +7,4 @@ videos/
 *.wav
 __pycache__/
 *.pyc
+brand/.work/
