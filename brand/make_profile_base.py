@@ -98,13 +98,15 @@ def smooth_wrinkles(rgb, cloth, scale, zone, amount=0.9):
 
 
 def clean_edges(rgb, alpha, scale):
-    """edge pixels still carry the yellow curtain: pull their colour from just inside the person."""
-    core = (alpha > 0.98).astype(np.float32)
-    core = cv2.erode(core, np.ones((5, 5), np.uint8))
-    inside = masked_blur(rgb, core, 4 * scale)
-    edge = np.clip((0.98 - alpha) / 0.5, 0, 1)
-    edge = np.maximum(edge, blur((alpha < 0.98).astype(np.float32), 2 * scale) * (alpha > 0.02))
-    return rgb * (1 - edge[..., None]) + inside * edge[..., None]
+    """thin yellow curtain fringe on the outline: no edge pixel may be brighter or yellower than
+    the person just inside it (per channel min). Dark detail (hair strands) is untouched, so the
+    outline stays crisp."""
+    core = cv2.erode((alpha > 0.97).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(np.float32)
+    inside = masked_blur(rgb, core, 3 * scale)
+    band = (alpha < 0.97).astype(np.uint8)
+    band = cv2.dilate(band, np.ones((7, 7), np.uint8)).astype(np.float32)
+    band = blur(band, 1.0)[..., None]
+    return rgb * (1 - band) + np.minimum(rgb, inside * 1.04) * band
 
 
 def face_light(rgb, alpha, cx, cy, r):

@@ -79,19 +79,23 @@ def main():
     ap.add_argument("--tilt", type=float, required=True, help="eye-line angle in degrees (image coords)")
     ap.add_argument("--eyes", required=True, help="x1,y1,x2,y2 pupil centres")
     ap.add_argument("--name", default="1")
+    ap.add_argument("--cutout", help="use the retouched master (base_*_cutout.png): already levelled")
     a = ap.parse_args()
     ex1, ey1, ex2, ey2 = [float(v) for v in a.eyes.split(",")]
     emx, emy = (ex1 + ex2) / 2, (ey1 + ey2) / 2
 
-    img = Image.open(a.src).convert("RGB")
-    alpha = matte(img)
-    alpha = np.clip((alpha - 0.06) / 0.9, 0, 1)
-    rgb = grade(np.asarray(img).astype(np.float32) / 255.0, alpha)
-    fg = decontaminate(rgb, alpha, None)
-
-    # level the head: rotate about the eye midpoint (no other change to the face)
-    rgba = Image.fromarray((np.dstack([fg, alpha]) * 255).astype(np.uint8), "RGBA")
-    rgba = rgba.rotate(a.tilt, resample=Image.BICUBIC, center=(emx, emy), expand=False)
+    if a.cutout:
+        rgba = Image.open(a.cutout).convert("RGBA")
+        a.tilt = 0.0
+    else:
+        img = Image.open(a.src).convert("RGB")
+        alpha = matte(img)
+        alpha = np.clip((alpha - 0.06) / 0.9, 0, 1)
+        rgb = grade(np.asarray(img).astype(np.float32) / 255.0, alpha)
+        fg = decontaminate(rgb, alpha, None)
+        # level the head: rotate about the eye midpoint (no other change to the face)
+        rgba = Image.fromarray((np.dstack([fg, alpha]) * 255).astype(np.uint8), "RGBA")
+        rgba = rgba.rotate(a.tilt, resample=Image.BICUBIC, center=(emx, emy), expand=False)
     arr = np.asarray(rgba).astype(np.float32) / 255
     fg, alpha = arr[..., :3], arr[..., 3]
     w, h = rgba.size

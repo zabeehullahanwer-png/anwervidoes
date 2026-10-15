@@ -36,16 +36,21 @@ def main():
     ap.add_argument("--name", default="1")
     ap.add_argument("--eye-y", type=float, default=0.38, help="eye line position (fraction of height)")
     ap.add_argument("--size", type=int, default=1080)
+    ap.add_argument("--cutout", help="use the retouched master (base_*_cutout.png): already levelled")
     a = ap.parse_args()
     ex1, ey1, ex2, ey2 = [float(v) for v in a.eyes.split(",")]
     emx, emy = (ex1 + ex2) / 2, (ey1 + ey2) / 2
 
-    img = Image.open(a.src).convert("RGB")
-    alpha = np.clip((matte(img) - 0.06) / 0.9, 0, 1)
-    rgb = grade(f32(img), alpha)
-    fg = decontaminate(rgb, alpha, None)
-    rgba = Image.fromarray((np.dstack([fg, alpha]) * 255).astype(np.uint8), "RGBA")
-    rgba = rgba.rotate(a.tilt, resample=Image.BICUBIC, center=(emx, emy))
+    if a.cutout:
+        rgba = Image.open(a.cutout).convert("RGBA")
+        a.tilt = 0.0
+    else:
+        img = Image.open(a.src).convert("RGB")
+        alpha = np.clip((matte(img) - 0.06) / 0.9, 0, 1)
+        rgb = grade(f32(img), alpha)
+        fg = decontaminate(rgb, alpha, None)
+        rgba = Image.fromarray((np.dstack([fg, alpha]) * 255).astype(np.uint8), "RGBA")
+        rgba = rgba.rotate(a.tilt, resample=Image.BICUBIC, center=(emx, emy))
     w, h = rgba.size
     valid = np.asarray(Image.new("L", (w, h), 255).rotate(a.tilt, resample=Image.NEAREST, center=(emx, emy))) > 0
     side = int(min(w, h, (h - emy) / (1 - a.eye_y)))
