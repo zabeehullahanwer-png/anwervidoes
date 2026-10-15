@@ -80,33 +80,34 @@ def remove_lint(rgb, cloth, scale):
     return rgb * (1 - keep[..., None]) + med * keep[..., None], keep
 
 
-def smooth_wrinkles(rgb, cloth, scale, zone, amount=0.9):
+def smooth_wrinkles(rgb, cloth, scale, zone, amount=0.6):
     """frequency split on the cloth: keep the body's broad shading (> ~110 px) and a little of the
     finest weave, flatten the band in between where creases and folds live."""
     m = cloth
     inner = cv2.erode(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (41, 41))).astype(np.float32)
-    low = masked_blur(rgb, m, 70 * scale)
+    low = masked_blur(rgb, m, 40 * scale)
     smooth = masked_blur(rgb, m, 1.5 * scale)          # denoised cloth (JPEG grain removed)
     fine = smooth - masked_blur(rgb, m, 4 * scale)
     mid = smooth - low - fine
     keep = detail_mask(rgb.mean(axis=2), m, scale, zone)
     a = amount * (1 - keep)
-    out = low + mid * (1 - a[..., None]) + fine * (0.7 + 0.3 * keep[..., None])
+    out = low + mid * (1 - a[..., None]) + fine + (rgb - smooth)
     out = out * (1 - keep[..., None]) + rgb * keep[..., None]   # buttons/stitches exactly as shot
     w = blur(inner, 28 * scale)[..., None] * m[..., None]
     return rgb * (1 - w) + out * w
 
 
 def clean_edges(rgb, alpha, scale):
-    """thin yellow curtain fringe on the outline: no edge pixel may be brighter or yellower than
-    the person just inside it (per channel min). Dark detail (hair strands) is untouched, so the
-    outline stays crisp."""
+    """thin yellow curtain tint on the outline: swap only the edge pixels' colour (chroma) for the
+    colour just inside the person. Brightness is untouched, so no dark bites or blotches."""
     core = cv2.erode((alpha > 0.97).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(np.float32)
-    inside = masked_blur(rgb, core, 3 * scale)
-    band = (alpha < 0.97).astype(np.uint8)
-    band = cv2.dilate(band, np.ones((7, 7), np.uint8)).astype(np.float32)
-    band = blur(band, 1.0)[..., None]
-    return rgb * (1 - band) + np.minimum(rgb, inside * 1.04) * band
+    inside = masked_blur(rgb, core, 4 * scale)
+    band = cv2.dilate((alpha < 0.97).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(np.float32)
+    band = blur(band, 1.0)
+    ycc = cv2.cvtColor(np.clip(rgb, 0, 1).astype(np.float32), cv2.COLOR_RGB2YCrCb)
+    ins = cv2.cvtColor(np.clip(inside, 0, 1).astype(np.float32), cv2.COLOR_RGB2YCrCb)
+    ycc[..., 1:] = ycc[..., 1:] * (1 - band[..., None]) + ins[..., 1:] * band[..., None]
+    return cv2.cvtColor(ycc, cv2.COLOR_YCrCb2RGB)
 
 
 def face_light(rgb, alpha, cx, cy, r):
@@ -133,20 +134,16 @@ def hide_undershirt(rgb, emx, emy, iod):
     return out
 
 
-def tame_shine(rgb, alpha, emx, emy, iod, amount=0.55):
-    """oily highlights on forehead / nose / cheeks: pull the specular peaks down toward the
-    surrounding skin tone. Light only: no smoothing, no shape change, skin texture kept."""
+def tame_shine(rgb, alpha, emx, emy, iod, amount=0.18):
+    """oily highlights on forehead / nose / cheeks: lower their brightness a little, same colour,
+    same texture (a smooth multiplicative dimmer: no patches)."""
     h, w = alpha.shape
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     face = np.exp(-(((xx - emx) / (iod * 1.15)) ** 4 + ((yy - (emy + 0.2 * iod)) / (iod * 1.35)) ** 4))
-    lum = rgb.max(axis=2)
-    base = cv2.GaussianBlur(lum, (0, 0), iod * 0.12)
-    spec = np.clip(base - 0.62, 0, None) / 0.38                 # broad shiny patches only
-    tex = lum - cv2.GaussianBlur(lum, (0, 0), iod * 0.012)       # pores / fine texture to keep
-    k = (amount * spec * face)[..., None]
-    skin = cv2.GaussianBlur(rgb, (0, 0), iod * 0.5)
-    target = skin * (base[..., None] * 0.0 + 1) * 0.92 + tex[..., None]
-    return rgb * (1 - k) + np.clip(target, 0, 1) * k
+    lum = cv2.GaussianBlur(rgb.max(axis=2), (0, 0), iod * 0.04)
+    spec = np.clip((lum - 0.70) / 0.25, 0, 1)
+    spec = cv2.GaussianBlur(spec, (0, 0), iod * 0.05)
+    return rgb * (1 - amount * spec * face)[..., None]
 
 
 def warp_level(img4, emx, emy, iod, head_deg, body_deg):
