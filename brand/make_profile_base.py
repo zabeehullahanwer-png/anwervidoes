@@ -117,11 +117,80 @@ def face_light(rgb, alpha, cx, cy, r):
     return out * alpha[..., None] + rgb * (1 - alpha[..., None])
 
 
+def hide_undershirt(rgb, emx, emy, iod):
+    """the sliver of white vest showing beside the top button -> filled from the surrounding kurta."""
+    x0, x1 = int(emx - 0.13 * iod), int(emx - 0.0 * iod)
+    y0, y1 = int(emy + 2.75 * iod), int(emy + 3.15 * iod)
+    u8 = (np.clip(rgb, 0, 1) * 255).astype(np.uint8)
+    hsv = cv2.cvtColor(u8, cv2.COLOR_RGB2HSV)
+    m = np.zeros(rgb.shape[:2], np.uint8)
+    win = hsv[y0:y1, x0:x1]
+    m[y0:y1, x0:x1] = ((win[..., 2] > 95) & (win[..., 1] < 120)).astype(np.uint8)
+    m = cv2.dilate(m, np.ones((7, 7), np.uint8))
+    out = cv2.inpaint(u8, m * 255, 9, cv2.INPAINT_TELEA).astype(np.float32) / 255
+    return out
+
+
+def tame_shine(rgb, alpha, emx, emy, iod, amount=0.55):
+    """oily highlights on forehead / nose / cheeks: pull the specular peaks down toward the
+    surrounding skin tone. Light only: no smoothing, no shape change, skin texture kept."""
+    h, w = alpha.shape
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    face = np.exp(-(((xx - emx) / (iod * 1.15)) ** 4 + ((yy - (emy + 0.2 * iod)) / (iod * 1.35)) ** 4))
+    lum = rgb.max(axis=2)
+    base = cv2.GaussianBlur(lum, (0, 0), iod * 0.12)
+    spec = np.clip(base - 0.62, 0, None) / 0.38                 # broad shiny patches only
+    tex = lum - cv2.GaussianBlur(lum, (0, 0), iod * 0.012)       # pores / fine texture to keep
+    k = (amount * spec * face)[..., None]
+    skin = cv2.GaussianBlur(rgb, (0, 0), iod * 0.5)
+    target = skin * (base[..., None] * 0.0 + 1) * 0.92 + tex[..., None]
+    return rgb * (1 - k) + np.clip(target, 0, 1) * k
+
+
+def warp_level(img4, emx, emy, iod, head_deg, body_deg):
+    """rotate the body by body_deg (shoulders level) and the head by head_deg (eyes level): the
+    angle blends smoothly from head to body around the neck, so the face moves rigidly."""
+    h, w = img4.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    cx, cy = emx, emy + 0.9 * iod
+    r = np.sqrt(((xx - cx) / (1.2 * iod)) ** 2 + ((yy - cy) / (2.35 * iod)) ** 2)
+    t = np.clip((r - 1.0) / 0.4, 0, 1)
+    wgt = 1 - t * t * (3 - 2 * t)                                 # 1 on head+beard, 0 on shoulders
+    ang = np.deg2rad(body_deg + (head_deg - body_deg) * wgt)
+    # inverse map (dst -> src): rotate by -ang about the eye midpoint
+    c, s_ = np.cos(-ang), np.sin(-ang)
+    dx, dy = xx - emx, yy - emy
+    mx = (emx + c * dx + s_ * dy).astype(np.float32)
+    my = (emy - s_ * dx + c * dy).astype(np.float32)
+    return cv2.remap(img4, mx, my, cv2.INTER_CUBIC, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+
+
+def shoulder_slope(al, emx, iod):
+    """mean height difference (right minus left) of the shoulder outline, sampled symmetrically."""
+    d = []
+    for k in (1.9, 2.2, 2.5):
+        ys = [np.where(al[:, int(emx + sgn * k * iod)] > 0.5)[0].min() for sgn in (-1, 1)]
+        d.append(ys[1] - ys[0])
+    return float(np.mean(d))
+
+
+def level_shoulders(alpha, emx, emy, iod, head_deg):
+    """body angle that makes the shoulders level after the warp (searched on a 1/4-size matte)."""
+    f = 0.25
+    small = cv2.resize(alpha, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
+    best = min(np.arange(-5.0, 1.0, 0.1),
+               key=lambda b: abs(shoulder_slope(warp_level(small, emx * f, emy * f, iod * f, head_deg, b),
+                                                emx * f, iod * f)))
+    return float(best)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("src")
     ap.add_argument("--tilt", type=float, required=True)
     ap.add_argument("--eyes", required=True)
+    ap.add_argument("--body-tilt", type=float, default=None,
+                    help="shoulder-line angle; default: measured from the matte")
     ap.add_argument("--name", default="1")
     a = ap.parse_args()
     ex1, ey1, ex2, ey2 = [float(v) for v in a.eyes.split(",")]
@@ -139,24 +208,29 @@ def main():
     rgb = grade(raw, alpha) * (1 - cw) + raw * cw
     rgb = decontaminate(rgb, alpha, None)
     rgb = clean_edges(rgb, alpha, scale)
+    rgb = hide_undershirt(rgb, emx, emy, iod)
     rgb, _ = remove_lint(rgb, cloth, scale)
     # buttons, placket and collar stitching live in a narrow band down the centre and at the collar
     hh, ww = alpha.shape
     yy, xx = np.mgrid[0:hh, 0:ww]
     zone = ((np.abs(xx - emx) < iod * 0.45) | (yy < chin_y + iod * 0.9)).astype(np.uint8)
     rgb = smooth_wrinkles(rgb, cloth, scale, zone)
+    rgb = tame_shine(rgb, alpha, emx, emy, iod)
     rgb = face_light(rgb, alpha, emx, emy + iod * 0.45, iod * 1.5)
 
-    # level the head (whole-image rotation about the eye midpoint: nothing on the face moves
-    # relative to anything else)
-    M = cv2.getRotationMatrix2D((emx, emy), a.tilt, 1.0)
+    # level eyes AND shoulders: they lean by different amounts, so head and body get their own
+    # rotation (the face itself is rotated rigidly, never bent)
     h, w = alpha.shape
-    # premultiplied warp: the old curtain colour hidden under alpha=0 must not smear into edges
+    body = a.body_tilt
+    if body is None:
+        body = level_shoulders(alpha, emx, emy, iod, a.tilt)
+    print(f"eye tilt {a.tilt:.2f} deg, shoulder tilt {body:.2f} deg")
     pm = np.dstack([rgb * alpha[..., None], alpha]).astype(np.float32)
-    pm = np.clip(cv2.warpAffine(pm, M, (w, h), flags=cv2.INTER_CUBIC, borderValue=(0, 0, 0, 0)), 0, 1)
+    pm = np.clip(warp_level(pm, emx, emy, iod, a.tilt, body), 0, 1)
     al_r = pm[..., 3]
     rgba = np.dstack([np.clip(pm[..., :3] / np.maximum(al_r, 1e-3)[..., None], 0, 1), al_r])
-    before = cv2.warpAffine(raw, M, (w, h), flags=cv2.INTER_CUBIC)
+    before = raw
+    M = cv2.getRotationMatrix2D((emx, emy), body, 1.0)
 
     os.makedirs(OUT, exist_ok=True)
     Image.fromarray((rgba * 255).astype(np.uint8), "RGBA").save(
