@@ -245,11 +245,23 @@ def main():
             break
         side -= 16
     crop = rgba[y0:y0 + side, x0:x0 + side]
-    bg = backdrop(side, side, "charcoal", emx - x0, emy - y0 + side * 0.1)
     al = crop[..., 3:4]
-    comp = crop[..., :3] * al + bg * (1 - al)
-    studio = Image.fromarray((np.clip(comp, 0, 1) * 255).astype(np.uint8)).resize((1080, 1080), Image.LANCZOS)
-    studio.save(os.path.join(OUT, f"base_{a.name}_studio.png"))
+    yy, xx = np.mgrid[0:side, 0:side].astype(np.float32) / side
+    vig = 1 - 0.18 * np.clip(np.sqrt((xx - 0.5) ** 2 + (yy - 0.45) ** 2) * 1.6 - 0.3, 0, 1)
+    for kind in ("charcoal", "navy", "emerald", "light"):
+        if kind == "navy":      # plain navy studio (same colours as the mihrab version, no arch)
+            d = np.sqrt(((xx - (emx - x0) / side) / 0.6) ** 2 + ((yy - (emy - y0) / side - 0.1) / 0.6) ** 2)
+            g = np.exp(-d ** 2 * 1.4)[..., None]
+            bg = np.array([0.012, 0.03, 0.07]) + (np.array([0.13, 0.25, 0.44]) - np.array([0.012, 0.03, 0.07])) * g
+            bg = bg + np.random.default_rng(1).normal(0, 0.006, bg.shape)
+        else:
+            bg = backdrop(side, side, kind, emx - x0, emy - y0 + side * 0.1)
+        comp = (crop[..., :3] * al + bg * (1 - al)) * vig[..., None]
+        im = Image.fromarray((np.clip(comp, 0, 1) * 255).astype(np.uint8)).resize((1080, 1080), Image.LANCZOS)
+        im.save(os.path.join(OUT, f"base_{a.name}_{kind}.png"))
+        if kind == "charcoal":
+            studio = im
+            im.save(os.path.join(OUT, f"base_{a.name}_studio.png"))
 
     b = Image.fromarray((np.clip(before[y0:y0 + side, x0:x0 + side], 0, 1) * 255).astype(np.uint8))
     b = b.resize((1080, 1080), Image.LANCZOS)
