@@ -96,7 +96,7 @@ def portrait_disc(D, S):
     return out, pad
 
 
-def cover(W=1640, H=624, scale=2):
+def cover(W=1640, H=624, scale=2, out_w=2048):
     S = scale
     w, h = W * S, H * S
     # composition, all inside the centre ~1230 px that phones keep:
@@ -150,13 +150,13 @@ def cover(W=1640, H=624, scale=2):
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     v = 1 - 0.30 * np.clip(np.sqrt(((xx - w / 2) / w) ** 2 * 1.2 + ((yy - h / 2) / h) ** 2 * 0.6) * 1.8 - 0.35, 0, 1)
     arr = np.asarray(img.convert("RGB")).astype(np.float32) * v[..., None]
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).resize((W, H), Image.LANCZOS)
+    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).resize((out_w, round(out_w * H / W)), Image.LANCZOS)
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    prof = Image.open(os.path.join(HERE, "profile", "out", "profile_dai_final_navy.png")).convert("RGB")
-    prof.save(os.path.join(OUT, "facebook_profile.png"))
+    prof = Image.open(os.path.join(HERE, "profile", "out", "profile_dai_hd_navy.png")).convert("RGB")
+    prof.save(os.path.join(OUT, "facebook_profile.png"), optimize=True)
     # circle preview
     m = Image.new("L", prof.size, 0)
     ImageDraw.Draw(m).ellipse((0, 0) + prof.size, fill=255)
@@ -165,7 +165,10 @@ def main():
     pv.save(os.path.join(OUT, "facebook_profile_preview.png"))
 
     cv = cover()
-    cv.save(os.path.join(OUT, "facebook_cover.png"))
+    # PNG (lossless) + sRGB: Facebook keeps text and gradients clean; 2048 px wide is the largest
+    # it stores, so it never has to upscale (upscaling is what makes uploads look soft or blocky)
+    cv.save(os.path.join(OUT, "facebook_cover.png"), optimize=True)
+    cv = cv.resize((1640, 624), Image.LANCZOS)
     # mobile safe-area guide: phones show roughly the centre 1230x624 of the upload
     g = cv.copy()
     d = ImageDraw.Draw(g)

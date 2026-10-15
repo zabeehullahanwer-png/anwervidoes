@@ -79,6 +79,7 @@ def main():
     ap.add_argument("--tilt", type=float, required=True, help="eye-line angle in degrees (image coords)")
     ap.add_argument("--eyes", required=True, help="x1,y1,x2,y2 pupil centres")
     ap.add_argument("--name", default="1")
+    ap.add_argument("--size", type=int, default=1080)
     ap.add_argument("--cutout", help="use the retouched master (base_*_cutout.png): already levelled")
     a = ap.parse_args()
     ex1, ey1, ex2, ey2 = [float(v) for v in a.eyes.split(",")]
@@ -124,7 +125,7 @@ def main():
         yy, xx = np.mgrid[0:side, 0:side].astype(np.float32) / side
         v = 1 - 0.22 * np.clip(np.sqrt((xx - 0.5) ** 2 + (yy - 0.42) ** 2) * 1.7 - 0.35, 0, 1)
         comp = np.clip(comp * v[..., None], 0, 1)
-        im = Image.fromarray((comp * 255).astype(np.uint8)).resize((1080, 1080), Image.LANCZOS)
+        im = Image.fromarray((comp * 255).astype(np.uint8)).resize((a.size, a.size), Image.LANCZOS)
         im = im.filter(ImageFilter.UnsharpMask(1.2, 40, 3))
         p = os.path.join(OUT, f"profile_dai_{a.name}_{theme}.png")
         im.save(p)
