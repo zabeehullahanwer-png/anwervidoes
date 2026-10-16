@@ -31,7 +31,6 @@ def studio(w, h, theme, cx, cy):
 def place(cut, w, h, theme):
     """crop the master to w:h around the face (eyes ~36 % from the top) and put it on a backdrop."""
     W, H = cut.size
-    H -= 16                                     # matte fades in the last rows of the photo
     ratio = w / h
     ch = H
     cw = int(round(ch * ratio))
@@ -51,6 +50,12 @@ def place(cut, w, h, theme):
 def main():
     os.makedirs(OUT, exist_ok=True)
     cut = Image.open(SRC).convert("RGBA")
+    # straighten the bottom: levelling the shoulders tilted the photo's bottom edge slightly, so cut
+    # it flat just above the highest point of that edge (no slanted line at the bottom of a frame)
+    a = np.asarray(cut.getchannel("A"))
+    cols = [np.where(a[:, x] > 200)[0] for x in range(0, a.shape[1], 8)]
+    bottom = min(c.max() for c in cols if len(c) and c.max() > a.shape[0] * 0.9) - 4
+    cut = cut.crop((0, 0, cut.width, bottom))
     # 1) transparent cut-out, trimmed to the person: the developer can put it on any background
     trimmed = cut.crop(cut.getchannel("A").point(lambda v: 255 if v > 8 else 0).getbbox())
     trimmed.save(os.path.join(OUT, "zabeehullah-leghari-cutout.png"), optimize=True)
@@ -61,7 +66,7 @@ def main():
     # 3) square (cards, author box, social previews)
     place(cut, 1200, 1200, "ivory").save(
         os.path.join(OUT, "zabeehullah-leghari-square-ivory.jpg"), quality=93, subsampling=0, optimize=True)
-    for f in sorted(os.listdir(OUT)):
+    for f in sorted(x for x in os.listdir(OUT) if not x.endswith(".zip")):
         p = os.path.join(OUT, f)
         print(f, Image.open(p).size, f"{os.path.getsize(p) / 1e6:.2f} MB")
 
