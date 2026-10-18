@@ -25,26 +25,56 @@ def esc(p):
     return p.replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
 
 
+def landscape_plate(work):
+    """16:9 plate for YouTube: navy lattice background + the calligraphy, and the letters' mask."""
+    from PIL import Image
+    sys.path.insert(0, HERE)
+    from make_facebook import background
+    w, h = 1920 * 2, 1080 * 2
+    bg = background(w, h, w / 2, h * 0.40).convert("RGBA")
+    lg = Image.open(os.path.join(HERE, "logo", "calligraphy_navy_ivory_transparent.png")).convert("RGBA")
+    lg = lg.crop(lg.getbbox())
+    lh = int(h * 0.56)
+    lg = lg.resize((int(lg.width * lh / lg.height), lh), Image.LANCZOS)
+    x, y = (w - lg.width) // 2, int(h * 0.40 - lh / 2)
+    bg.alpha_composite(lg, (x, y))
+    mask = Image.new("L", (w, h), 0)
+    mask.paste(lg.getchannel("A"), (x, y))
+    p1, p2 = os.path.join(work, "plate_16x9.png"), os.path.join(work, "mask_16x9.png")
+    bg.convert("RGB").save(p1)
+    mask.save(p2)
+    return p1, p2
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--palette", default="emerald")
+    ap.add_argument("--landscape", action="store_true", help="16:9 1920x1080 (YouTube) instead of the 9:16 reel")
     a = ap.parse_args()
-    logo = os.path.join(HERE, "logo", f"reel_plate_{a.palette}.png")
-    alpha = os.path.join(HERE, "logo", f"reel_mask_{a.palette}.png")
-    out = os.path.join(HERE, "logo", f"intro_{a.palette}_reel.mp4")
+    global W, H
     work = os.path.join(HERE, ".work")
     os.makedirs(work, exist_ok=True)
+    if a.landscape:
+        W, H = 1920, 1080
+        logo, alpha = landscape_plate(work)
+        out = os.path.join(HERE, "logo", f"intro_{a.palette}_16x9.mp4")
+    else:
+        logo = os.path.join(HERE, "logo", f"reel_plate_{a.palette}.png")
+        alpha = os.path.join(HERE, "logo", f"reel_mask_{a.palette}.png")
+        out = os.path.join(HERE, "logo", f"intro_{a.palette}_reel.mp4")
 
     # title text (libass: proper Nastaliq shaping)
     style = {"text": "#FFFFFF", "accent": "#CFE9DD" if a.palette == "emerald" else "#E9DFC6",
              "muted": "#DDE8E3"}
     doc = AssDoc(W, H, style, "ur")
     tag, scr, sz = doc.text_tag("ذبیح اللہ لغاری", 0.068, col="#FFFFFF", outline=0, shadow=0)
-    doc.add(2.7, T, "{\\an5\\pos(540,1610)%s\\bord0\\shad2\\4a&H60&\\fad(700,0)\\blur8\\t(0,800,\\blur0)"
-                    "\\fscx92\\fscy92\\t(0,1600,\\fscx100\\fscy100)}ذبیح اللہ لغاری" % tag, layer=5)
-    doc.divider(3.3, T, 540, 1708, 300, delay_ms=0)
+    cx = W // 2
+    ny, dy, ey = (int(H * 0.80), int(H * 0.86), int(H * 0.915)) if a.landscape else (1610, 1708, 1772)
+    doc.add(2.7, T, "{\\an5\\pos(%d,%d)%s\\bord0\\shad2\\4a&H60&\\fad(700,0)\\blur8\\t(0,800,\\blur0)"
+                    "\\fscx92\\fscy92\\t(0,1600,\\fscx100\\fscy100)}ذبیح اللہ لغاری" % (cx, ny, tag), layer=5)
+    doc.divider(3.3, T, cx, dy, 300, delay_ms=0)
     etag, _, _ = doc.text_tag("ZABEEHULLAH LEGHARI", 0.026, col=style["accent"])
-    doc.add(3.7, T, "{\\an5\\pos(540,1772)%s\\fsp6\\fad(600,0)}ZABEEHULLAH LEGHARI" % etag, layer=5)
+    doc.add(3.7, T, "{\\an5\\pos(%d,%d)%s\\fsp6\\fad(600,0)}ZABEEHULLAH LEGHARI" % (cx, ey, etag), layer=5)
     ass = os.path.join(work, "intro.ass")
     doc.write(ass)
 
