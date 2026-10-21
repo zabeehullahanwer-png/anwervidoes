@@ -10,7 +10,7 @@ Single source for the website icons and every bio. Update here first, then send 
 | Platform | Link | Note |
 |---|---|---|
 | YouTube | https://www.youtube.com/@zabeehullahleghari | channel id UCRwmko60_MF_3fTsQpJkaDw |
-| Facebook | https://www.facebook.com/share/1AmvExE9Ki/ | share link; replace with the permanent profile URL |
+| Facebook | https://www.facebook.com/profile.php?id=61595176785542 | optional: set username `zabeehullahleghari` |
 | Instagram | https://www.instagram.com/legharizabeehullah | |
 | TikTok | https://www.tiktok.com/@zabeehullahleghari | |
 | X | https://x.com/zabeehleghari | |
