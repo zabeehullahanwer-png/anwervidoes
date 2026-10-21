@@ -14,7 +14,7 @@ Single source for the website icons and every bio. Update here first, then send 
 | Instagram | https://www.instagram.com/legharizabeehullah | |
 | TikTok | https://www.tiktok.com/@zabeehullahleghari | |
 | X | https://x.com/zabeehleghari | |
-| LinkedIn | https://www.linkedin.com/in/zabeehullah-leghari-62300b237 | optional: custom URL `zabeehullahleghari` |
+| LinkedIn | https://www.linkedin.com/in/zabeehullahleghari | custom URL set |
 
 ## Academic (pending)
 | Platform | Link |
