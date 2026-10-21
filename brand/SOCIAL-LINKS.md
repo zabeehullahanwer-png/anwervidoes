@@ -4,7 +4,7 @@ Single source for the website icons and every bio. Update here first, then send 
 
 ## Website
 - Current: https://zabeehullah-leghari.vercel.app
-- Own domain (.com): _pending, the exact address is still to be confirmed_
+- Own domain: https://www.zabeehullahleghari.com (use this everywhere from now on)
 
 ## Social (ready)
 | Platform | Link | Note |
