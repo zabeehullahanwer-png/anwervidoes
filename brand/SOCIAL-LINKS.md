@@ -20,7 +20,7 @@ Single source for the website icons and every bio. Update here first, then send 
 | Platform | Link |
 |---|---|
 | Google Scholar | _pending_ |
-| ORCID | _pending_ |
+| ORCID | https://orcid.org/0009-0000-8974-0774 |
 | ResearchGate | _pending_ |
 | Academia.edu | _pending_ |
 
