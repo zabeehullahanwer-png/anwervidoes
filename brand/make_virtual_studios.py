@@ -473,12 +473,15 @@ SETS = {"library": set_library, "broadcast": set_broadcast, "arches": set_arches
         "brand": set_brand, "manuscript": set_manuscript}
 
 
+VERTICAL = False
+
+
 def render(sc, path, preview, transparent):
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
     sc.cycles.samples = 16 if preview else 48
     sc.cycles.use_denoising = True
-    sc.render.resolution_x, sc.render.resolution_y = 1920, 1080
+    sc.render.resolution_x, sc.render.resolution_y = (1080, 1920) if VERTICAL else (1920, 1080)
     sc.render.resolution_percentage = 50 if preview else 100
     sc.render.film_transparent = transparent
     sc.render.image_settings.file_format = "PNG"
@@ -511,15 +514,18 @@ def save_meta(sc, name):
     import json
     from bpy_extras.object_utils import world_to_camera_view
     cam = sc.camera
-    sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = 1920, 1080, 100
+    sc.render.resolution_percentage = 100
+    rw, rh = (1080, 1920) if VERTICAL else (1920, 1080)
+    sc.render.resolution_x, sc.render.resolution_y = rw, rh
+
     def px(p):
         v = world_to_camera_view(sc, cam, mathutils.Vector(p))
-        return v.x * 1920, (1 - v.y) * 1080
+        return v.x * rw, (1 - v.y) * rh
     eye = px((0, 0, 1.22))
     one = px((1.0, 0, 1.22))
     desk_back = px((0, -0.30, DESK_TOP))
     meta = {"eye_x": eye[0], "eye_y": eye[1], "ppm": one[0] - eye[0], "desk_back_y": desk_back[1]}
-    with open(os.path.join(OUT, f"{name}_meta.json"), "w") as f:
+    with open(os.path.join(OUT, f"{name}{'_v' if VERTICAL else ''}_meta.json"), "w") as f:
         json.dump(meta, f, indent=1)
     print(name, meta)
 
@@ -528,9 +534,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", action="store_true")
     ap.add_argument("--only", default=",".join(SETS))
+    ap.add_argument("--vertical", action="store_true",
+                    help="9:16 close camera for reels (presenter fills the width; no desk layer)")
     a = ap.parse_args(sys.argv[1:])
     os.makedirs(OUT, exist_ok=True)
     textures()
+    if a.vertical:
+        global VERTICAL, CAM, LENS, PITCH
+        VERTICAL, CAM, LENS, PITCH = True, (0.0, -0.7, 1.26), 52, -2.0
+        for name in a.only.split(","):
+            rnd = random.Random(11)
+            sc, style, pr = SETS[name](rnd)
+            save_meta(sc, name)
+            sc.cycles.samples = 36
+            render(sc, os.path.join(OUT, f"{name}_v_bg.png"), a.preview, False)
+        return
     for name in a.only.split(","):
         sc = build(name, False)
         save_meta(sc, name)
