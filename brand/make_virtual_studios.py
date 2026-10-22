@@ -255,8 +255,9 @@ def floor(m):
 def desk(style):
     """anchor desk in front of the presenter; returns its objects (foreground layer)."""
     objs = []
-    if style == "walnut":
-        top = mat("desk_top", (0.09, 0.045, 0.02), rough=0.42, coat=0.25)
+    if style in ("walnut", "walnut_matte"):
+        top = mat("desk_top", (0.09, 0.045, 0.02), rough=0.42 if style == "walnut" else 0.75,
+                  coat=0.25 if style == "walnut" else 0.0)
         body = img_mat("desk_body", os.path.join(TEX, "lattice.png"), base=(0.06, 0.03, 0.014), rough=0.35,
                        line_color=(0.30, 0.18, 0.08))
         trim = mat("desk_trim", GOLD, rough=0.25, metal=1.0)
@@ -465,7 +466,7 @@ def set_manuscript(rnd):
         bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.09, depth=0.28, location=(x, Y - 0.5, 2.35))
         bpy.context.active_object.data.materials.append(brass)
         light("POINT", (x, Y - 0.5, 2.35), 35, (1.0, 0.7, 0.35), size=0.06)
-    return sc, "walnut", dict(mic=False, lamp=False)
+    return sc, "walnut_matte", dict(mic=False, lamp=False)
 
 
 SETS = {"library": set_library, "broadcast": set_broadcast, "arches": set_arches,
