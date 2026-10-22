@@ -21,8 +21,8 @@ Single source for the website icons and every bio. Update here first, then send 
 |---|---|
 | Google Scholar | _pending_ |
 | ORCID | https://orcid.org/0009-0000-8974-0774 |
-| ResearchGate | _pending_ |
-| Academia.edu | _pending_ |
+| ResearchGate | _later: needs a university email or a published paper_ |
+| Academia.edu | https://punjablahorepakistan.academia.edu/zabeehullahleghari |
 
 ## To do when the academic links arrive
 1. Send the developer one message with all social + academic links (icons open in a new tab).
