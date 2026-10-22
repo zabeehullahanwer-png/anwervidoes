@@ -69,6 +69,10 @@ Pick sensible defaults and state them in one line. Ask only if something is trul
 Styles live in `presets/styles.json`. Read `reference/style-guide.md` once per session. It holds the
 editorial craft rules and the Islamic content rules, and both are binding.
 
+When planning a series, choosing which moments to cut into reels, or writing titles, captions and
+descriptions, read `reference/content-strategy.md`. It covers the user's positioning ("sourced
+researcher, not debater"), the signature series, things never to do, and the pre-publish check.
+
 ## 2. Look and listen before you cut
 
 ```
