@@ -15,3 +15,8 @@ brand/social/
 brand/studio/plates/
 brand/studio/out/
 brand/studio/tex/
+# private research files: thesis and source PDFs/DOCX stay local
+research/**/*.pdf
+research/**/*.docx
+research/**/*.doc
+research/thesis/text/

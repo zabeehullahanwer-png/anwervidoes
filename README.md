@@ -31,3 +31,9 @@ The first time, Claude asks for your on-screen name, title and channel handle, a
 Recording checklist (Urdu): [`RECORDING-GUIDE.md`](RECORDING-GUIDE.md).
 The details are in [`.claude/skills/dai-video-editor/SKILL.md`](.claude/skills/dai-video-editor/SKILL.md).
 Fonts (Amiri, Noto Nastaliq Urdu, Poppins, Hind) are bundled under the SIL Open Font License.
+
+## Research Assistant / ریسرچ اسسٹنٹ 📚
+
+دوسری اسکل **Muhaqqiq** (`.claude/skills/research-assistant/`) تحقیقی کام کے لیے ہے: ایم فل تھیسس سے مقالہ،
+HEC (Y/X/W) اور بین الاقوامی (Scopus/WoS) جرائد کے لیے مقالات، حوالہ جات کی تصدیق، اردو و انگریزی خلاصے،
+تھیسس سے سیلف پلیجرزم کی جانچ، ریویورز کو جواب، اور پی ایچ ڈی پروپوزل۔ ورک اسپیس: [`research/`](research/README.md)۔
