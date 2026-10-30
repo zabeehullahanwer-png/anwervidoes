@@ -155,3 +155,4 @@ and, for Scopus/WoS, on the official source lists.
 | `reference/integrity.md` | HEC plagiarism policy, Turnitin, AI-use disclosure, authorship ethics |
 | `reference/journals.md` | how to choose and vet journals; starter list (verify before use) |
 | `reference/reviewer-response.md` | cover letters and response-to-reviewers templates |
+| `reference/metrics-rankings.md` | citations, h-index, researcher ranking lists, university rankings, profiles |
