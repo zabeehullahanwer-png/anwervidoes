@@ -392,15 +392,13 @@ def draw_lower(cv, t):
     kin, kout = env(t, 5.0, 0.6, 0.5)
     if kout <= 0 or t < 0:
         return
-    n = plain_text(NAME, 52)
-    hd = plain_text(HANDLE, 26, GOLD_HI, POPPINS, None)
-    x = W - 60 - n.width + int(50 * (1 - kin))
-    y = 1560
+    n = name_en(46)
     a = kin * kout
+    x = W - 70 - n.width + int(50 * (1 - kin))
+    y = 1600
     d = ImageDraw.Draw(cv)
-    d.line([(W - 60, y + 40), (W - 60, y + 170)], fill=GOLD_HI + (int(255 * a),), width=4)
-    cv.alpha_composite(fade(n, a), (x - 10, y))
-    cv.alpha_composite(fade(hd, a), (W - 80 - hd.width, y + n.height - 50))
+    d.line([(W - 56, y + 4), (W - 56, y + n.height - 4)], fill=GOLD_HI + (int(255 * a),), width=4)
+    cv.alpha_composite(wipe(fade(n, a), kin), (x, y))
 
 
 def full_card(card, t, dur):
@@ -433,13 +431,47 @@ def full_card(card, t, dur):
     ref = plain_text(card["ref"], 38, (226, 214, 190))
     cv.alpha_composite(fade(ref, smooth((t - 1.1) / 0.6) * kout), ((W - ref.width) // 2, y + 40))
     if card.get("end"):
-        n = plain_text(NAME, 64)
-        hd = plain_text(HANDLE, 30, GOLD_HI, POPPINS, None)
-        cv.alpha_composite(fade(n, kin * kout), ((W - n.width) // 2, 1350))
-        cv.alpha_composite(fade(hd, kin * kout), ((W - hd.width) // 2, 1350 + n.height - 40))
+        lg = Image.open(LOGO).convert("RGBA")
+        lg.thumbnail((300, 300), Image.LANCZOS)
+        cv.alpha_composite(fade(lg, kin * kout), ((W - lg.width) // 2, 1180))
+        n = name_en(52)
+        cv.alpha_composite(fade(n, kin * kout), ((W - n.width) // 2, 1510))
     return cv
 
 
+
+
+CORMORANT = os.path.join(HERE, "fonts", "CormorantGaramond-700-normal.ttf")
+NAME_EN = "ZABEEHULLAH LEGHARI"
+
+
+def name_en(size=44, spacing=0.18, fill=None):
+    """the presenter's name in letter-spaced Cormorant capitals with a gold gradient"""
+    key = ("name_en", size, spacing, fill)
+    if key in _cache:
+        return _cache[key]
+    f = font(CORMORANT, size)
+    gap = int(size * spacing)
+    widths = [f.getbbox(ch)[2] - f.getbbox(ch)[0] if ch != " " else size // 3 for ch in NAME_EN]
+    w = sum(widths) + gap * (len(NAME_EN) - 1) + 40
+    h = int(size * 1.6)
+    m = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(m)
+    x = 20
+    for ch, cw in zip(NAME_EN, widths):
+        if ch != " ":
+            d.text((x - f.getbbox(ch)[0], int(size * 0.2)), ch, font=f, fill=255)
+        x += cw + gap
+    ys = np.linspace(0, 1, h)[:, None, None]
+    top, bot = np.array((248, 226, 178), np.float32), np.array((196, 150, 84), np.float32)
+    rgb = np.broadcast_to(top * (1 - ys) + bot * ys, (h, w, 3)) if fill is None else np.full((h, w, 3), fill, np.float32)
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh.putalpha(m.filter(ImageFilter.GaussianBlur(5)).point(lambda v: int(v * 0.8)))
+    out.alpha_composite(sh, (0, 3))
+    out.alpha_composite(Image.fromarray(np.dstack([rgb, np.asarray(m)]).astype(np.uint8), "RGBA"))
+    _cache[key] = out
+    return out
 
 # ---- channel furniture: logo, countdown, social strip --------------------------------------------
 NASKH = os.path.join(ROOT, ".claude", "skills", "dai-video-editor", "assets", "fonts", "NotoNaskhArabic-Bold.ttf")
@@ -517,10 +549,8 @@ def draw_strip(cv):
         for k in ["fb", "yt", "tt", "ig", "x"]:
             st.alpha_composite(_icon(k), (x, 26))
             x += 60
-        hd = plain_text(HANDLE, 30, (255, 255, 255), POPPINS, None)
-        st.alpha_composite(hd, (x + 4, 48 - hd.height // 2))
-        nm = plain_text(NAME, 40, GOLD_HI)
-        st.alpha_composite(nm, (W - 30 - nm.width, 48 - nm.height // 2 - 4))
+        nm = name_en(34)
+        st.alpha_composite(nm, (W - 24 - nm.width, 48 - nm.height // 2))
         _cache["strip"] = st
     cv.alpha_composite(_cache["strip"], (0, H - 104))
 
