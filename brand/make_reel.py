@@ -409,7 +409,7 @@ def draw_list(cv, items, t_out, y0):
         if t < 0 or t_out > it["end"]:
             continue
         kin, kout = env(t, it["end"] - it["t"], 0.5, 0.4)
-        y = y0 + i * 150
+        y = y0 + i * 125
         num = gold_text("۱۲۳۴۵"[i], 104)
         word = plain_text(it["text"], 84)
         x_right = W - 150 + int(60 * (1 - kin))
@@ -551,42 +551,61 @@ HEADLINE = None
 
 
 def draw_headline(cv):
-    """persistent title in a gold cartouche: navy glass, double gold border with pointed ends, Nastaliq in gold"""
+    """persistent title in an ornate gold frame: navy glass panel with an ogee arch on top, double gold
+    border, corner rosettes and side finials; the Nastaliq title in gold sits inside"""
     if not HEADLINE:
         return
     if "headline" not in _cache:
-        S = 2
-        txt = gold_text(HEADLINE, 62, NASTALIQ, grad=((255, 244, 214), (226, 182, 104)))
-        tw = min(txt.width - 40, W - 220)
-        if txt.width - 40 > tw:
-            txt = txt.resize((tw + 40, int(txt.height * (tw + 40) / txt.width)), Image.LANCZOS)
-        bw, bh = tw + 150, 118
-        w, h = bw + 40, bh + 40
+        S = 3
+        txt = gold_text(HEADLINE, 66, NASTALIQ, grad=((255, 246, 220), (228, 184, 104)))
+        maxw = W - 260
+        if txt.width - 40 > maxw:
+            txt = txt.resize((maxw + 40, int(txt.height * (maxw + 40) / txt.width)), Image.LANCZOS)
+        bw, bh = txt.width - 40 + 130, 132
+        arch = 26
+        w, h = bw + 80, bh + arch + 50
         im = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0))
-        d = ImageDraw.Draw(im)
+        x0, y0 = 40, 25 + arch
+        x1, y1 = x0 + bw, y0 + bh
 
-        def cart(inset):
-            x0, y0, x1, y1 = 20 + inset, 20 + inset, 20 + bw - inset, 20 + bh - inset
-            cy = (y0 + y1) / 2
-            p = 34 - inset * 0.6
-            return [((x0 + p) * S, y0 * S), ((x1 - p) * S, y0 * S), (x1 * S, cy * S), ((x1 - p) * S, y1 * S),
-                    ((x0 + p) * S, y1 * S), (x0 * S, cy * S)]
-        glow = Image.new("RGBA", im.size, (0, 0, 0, 0))
-        ImageDraw.Draw(glow).polygon(cart(0), fill=(0, 0, 0, 170))
-        im.alpha_composite(glow.filter(ImageFilter.GaussianBlur(10 * S)))
-        d.polygon(cart(0), fill=(8, 22, 44, 225))
-        d.polygon(cart(0), outline=GOLD_HI + (255,), width=3 * S)
-        d.polygon(cart(8), outline=GOLD + (200,), width=1 * S)
-        for x in (20 + 4, 20 + bw - 4):                       # diamonds at the points
-            cy = 20 + bh / 2
-            q = 9
-            d.polygon([((x) * S, (cy - q) * S), ((x + q) * S, cy * S), (x * S, (cy + q) * S), ((x - q) * S, cy * S)],
-                      fill=GOLD_HI + (255,))
+        def outline(inset):
+            xa, ya, xb, yb = x0 + inset, y0 + inset, x1 - inset, y1 - inset
+            cx = (xa + xb) / 2
+            pts = [(xa, yb), (xa, ya)]
+            # ogee arch along the top edge
+            for i in range(41):
+                t = i / 40
+                x = xa + (xb - xa) * t
+                bump = (math.sin(math.pi * t) ** 6) * (arch - inset * 0.5)
+                pts.append((x, ya - bump))
+            pts += [(xb, ya), (xb, yb)]
+            return [(px * S, py * S) for px, py in pts]
+        sh = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        ImageDraw.Draw(sh).polygon(outline(0), fill=(0, 0, 0, 190))
+        im.alpha_composite(sh.filter(ImageFilter.GaussianBlur(12 * S)))
+        d = ImageDraw.Draw(im)
+        d.polygon(outline(0), fill=(9, 24, 48, 232))
+        d.line(outline(0) + [outline(0)[0]], fill=GOLD_HI + (255,), width=4 * S, joint="curve")
+        d.line(outline(9) + [outline(9)[0]], fill=GOLD + (210,), width=int(1.5 * S), joint="curve")
+        for (cx, cy) in [(x0, y0), (x1, y0), (x0, y1), (x1, y1)]:            # corner rosettes
+            for k in range(8):
+                a_ = math.pi * k / 4
+                d.ellipse([(cx + 9 * math.cos(a_) - 3.5) * S, (cy + 9 * math.sin(a_) - 3.5) * S,
+                           (cx + 9 * math.cos(a_) + 3.5) * S, (cy + 9 * math.sin(a_) + 3.5) * S], fill=GOLD_HI + (255,))
+            d.ellipse([(cx - 5) * S, (cy - 5) * S, (cx + 5) * S, (cy + 5) * S], fill=(9, 24, 48, 255),
+                      outline=GOLD_HI + (255,), width=2 * S)
+        cy = (y0 + y1) / 2                                                   # side finials
+        for sgn, x in ((-1, x0), (1, x1)):
+            d.polygon([((x + sgn * 30) * S, cy * S), ((x + sgn * 4) * S, (cy - 12) * S),
+                       ((x + sgn * 4) * S, (cy + 12) * S)], fill=GOLD_HI + (255,))
+        ax = (x0 + x1) / 2                                                   # crest on the arch
+        d.polygon([(ax * S, (y0 - arch - 18) * S), ((ax + 9) * S, (y0 - arch - 6) * S), (ax * S, (y0 - arch + 6) * S),
+                   ((ax - 9) * S, (y0 - arch - 6) * S)], fill=GOLD_HI + (255,))
         im = im.resize((w, h), Image.LANCZOS)
-        im.alpha_composite(txt, ((w - txt.width) // 2, (h - txt.height) // 2 + 4))
+        im.alpha_composite(txt, ((w - txt.width) // 2, y0 + (bh - txt.height) // 2 + 6))
         _cache["headline"] = im
     hl = _cache["headline"]
-    cv.alpha_composite(hl, ((W - hl.width) // 2, 112))
+    cv.alpha_composite(hl, ((W - hl.width) // 2, 100))
 
 
 def draw_logo(cv):
@@ -657,12 +676,12 @@ CORM_IT = os.path.join(HERE, "fonts", "CormorantGaramond-500-italic.ttf")
 def series_title(spec):
     """"SEERAT" in gold serif capitals with a light italic "insights" riding over it"""
     big, small = spec.split("|")
-    f1 = font(CORMORANT, 92)
-    f2 = font(CORM_IT, 50)
+    f1 = font(CORMORANT, 128)
+    f2 = font(CORM_IT, 66)
     w = int(f1.getlength(big)) + 60
-    h = 150
+    h = 200
     m = Image.new("L", (w, h), 0)
-    ImageDraw.Draw(m).text((30, 40), big, font=f1, fill=255)
+    ImageDraw.Draw(m).text((30, 52), big, font=f1, fill=255)
     ys = np.linspace(0, 1, h)[:, None, None]
     rgb = np.broadcast_to(np.array((255, 232, 120), np.float32) * (1 - ys) + np.array((222, 168, 40), np.float32) * ys,
                           (h, w, 3))

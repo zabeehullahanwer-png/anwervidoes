@@ -195,7 +195,7 @@
    "type": "list",
    "take": "171336",
    "y": 400,
-   "until": 33.2,
+   "until": 31.5,
    "items": [
     {
      "text": "امن",
@@ -218,7 +218,8 @@
    "size": 60,
    "take": "171336",
    "at": 106.9,
-   "until": 114.2
+   "until": 114.2,
+   "y": 345
   },
   {
    "type": "broll",
@@ -234,7 +235,8 @@
    "take": "171336",
    "at": 16.45,
    "until": 18.55,
-   "color": "yellow"
+   "color": "yellow",
+   "y": 520
   },
   {
    "type": "bgword",
@@ -252,28 +254,29 @@
    "caption": "پوری دنیا"
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "جامع ترمذی",
    "take": "171951",
    "at": 10.7,
    "until": 14.2,
-   "kicker": "حدیثِ رسول"
+   "y": 520
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "= پوری دنیا",
    "take": "171336",
    "at": 31.6,
    "until": 33.2,
-   "size": 100,
-   "y": 800
+   "y": 520,
+   "color": "yellow"
   },
   {
    "type": "bold",
    "text": "امن",
    "take": "171336",
    "at": 41.5,
-   "until": 42.6
+   "until": 42.6,
+   "y": 520
   },
   {
    "type": "bgword",
@@ -304,7 +307,8 @@
    "take": "171336",
    "at": 54.6,
    "until": 56.1,
-   "color": "yellow"
+   "color": "yellow",
+   "y": 520
   },
   {
    "type": "bgword",
@@ -322,12 +326,12 @@
    "caption": "مقابلے کی دوڑ"
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "یہ لمحہ",
    "take": "171336",
    "at": 68.4,
    "until": 72.3,
-   "kicker": "ہم بھول جاتے ہیں"
+   "y": 520
   },
   {
    "type": "bgword",
@@ -355,7 +359,8 @@
    "text": "ماضی کا غم",
    "take": "171336",
    "at": 79.3,
-   "until": 84.6
+   "until": 84.6,
+   "y": 520
   },
   {
    "type": "broll",
@@ -366,41 +371,44 @@
    "caption": "لمحۂ موجود"
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "شکر کے ساتھ جینا",
    "take": "171336",
    "at": 102.3,
-   "until": 106.4
+   "until": 106.4,
+   "y": 520
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "نہ اندیشہ",
    "take": "171336",
    "at": 119.3,
    "until": 121.7,
-   "kicker": "مستقبل کا"
+   "y": 520
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "نہ غم",
    "take": "171336",
    "at": 122.1,
    "until": 123.35,
-   "kicker": "ماضی کا"
+   "y": 520
   },
   {
    "type": "bold",
    "text": "جائزہ لیں",
    "take": "171951",
    "at": 246.3,
-   "until": 249.4
+   "until": 249.4,
+   "y": 520
   },
   {
-   "type": "word",
+   "type": "bold",
    "text": "موجود نعمتوں کا شکر",
    "take": "171951",
    "at": 251.0,
-   "until": 254.6
+   "until": 254.6,
+   "y": 520
   },
   {
    "type": "bold",
@@ -408,7 +416,8 @@
    "take": "171336",
    "at": 172.3,
    "until": 174.95,
-   "color": "yellow"
+   "color": "yellow",
+   "y": 520
   },
   {
    "type": "bgword",
