@@ -34,12 +34,25 @@
   {
    "take": "171336",
    "in": 24.86,
+   "out": 29.45,
+   "shots": [
+    "M"
+   ],
+   "push": true,
+   "trim": false,
+   "snap": false
+  },
+  {
+   "take": "171336",
+   "in": 29.55,
    "out": 33.25,
    "shots": [
     "M"
    ],
    "push": true,
-   "trim": false
+   "trim": false,
+   "snap": false,
+   "join": true
   },
   {
    "take": "171336",
@@ -405,5 +418,23 @@
    "until": 174.95
   }
  ],
- "headline": "لمحۂ موجود میں جینا سیکھیے"
+ "headline": "لمحۂ موجود میں جینا سیکھیے",
+ "remove": [
+  [
+   "171336",
+   59.4,
+   59.86
+  ],
+  [
+   "171336",
+   49.66,
+   50.24
+  ],
+  [
+   "171336",
+   114.72,
+   116.02
+  ]
+ ],
+ "series": "SEERAT|insights"
 }

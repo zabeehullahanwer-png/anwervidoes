@@ -98,14 +98,36 @@ def build_cuts(plan, work):
         if tk not in edbs:
             edbs[tk] = energy(take_wav(tk, work))
         e = edbs[tk]
-        t0, t1 = snap(e, seg["in"]), snap(e, seg["out"])
-        subs = subclips(e, t0, t1) if seg.get("trim", True) else [(t0, t1)]
+        if seg.get("snap", True):
+            t0, t1 = snap(e, seg["in"]), snap(e, seg["out"])
+        else:
+            t0, t1 = seg["in"], seg["out"]
+        # remove fillers ("آ…") and the like listed in the plan, then shorten the pauses
+        parts = [(t0, t1)]
+        for rtk, r0, r1 in plan.get("remove", []):
+            if rtk != tk:
+                continue
+            nxt = []
+            for a, b in parts:
+                if r1 <= a or r0 >= b:
+                    nxt.append((a, b))
+                else:
+                    if r0 > a:
+                        nxt.append((a, r0))
+                    if r1 < b:
+                        nxt.append((r1, b))
+            parts = nxt
+        subs = []
+        for a, b in parts:
+            subs += subclips(e, a, b) if seg.get("trim", True) else [(a, b)]
         shots = seg.get("shots", ["W"])
         for k, (x, y) in enumerate(subs):
             # frame-exact lengths so audio and video stay in step
             n = max(1, int(round((y - x) * FPS)))
+            first = k == 0 and len(pieces) > 0 and not seg.get("join")
             pieces.append({"take": tk, "in": x, "out": x + n / FPS, "shot": shots[k % len(shots)],
-                           "push": seg.get("push", False), "seg_start": k == 0 and len(pieces) > 0, "alt": k % 2 == 1})
+                           "push": seg.get("push", False), "seg_start": first,
+                           "alt": (k % 2 == 1) if not seg.get("join") else (k % 2 == 0)})
     t = 0.0
     for p in pieces:
         p["t"] = t
@@ -529,43 +551,42 @@ HEADLINE = None
 
 
 def draw_headline(cv):
-    """persistent title under the logo row: white Nastaliq with a gold key phrase, stroke and soft shadow"""
+    """persistent title in a gold cartouche: navy glass, double gold border with pointed ends, Nastaliq in gold"""
     if not HEADLINE:
         return
     if "headline" not in _cache:
-        f = font(NASTALIQ, 64)
-        txt = HEADLINE
-        l, t, r, b = f.getbbox(txt, direction="rtl", stroke_width=4)
-        pad = 30
-        w, h = r - l + 2 * pad, b - t + 2 * pad
-        m = Image.new("L", (w, h), 0)
-        ImageDraw.Draw(m).text((pad - l, pad - t), txt, font=f, fill=255, direction="rtl")
-        ms = Image.new("L", (w, h), 0)
-        ImageDraw.Draw(ms).text((pad - l, pad - t), txt, font=f, fill=255, direction="rtl", stroke_width=4)
-        ys = np.linspace(0, 1, h)[:, None, None]
-        rgb = np.broadcast_to(np.array((255, 246, 226), np.float32) * (1 - ys) + np.array((236, 200, 130), np.float32) * ys,
-                              (h, w, 3))
-        im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        sh.putalpha(ms.filter(ImageFilter.GaussianBlur(8)))
-        im.alpha_composite(sh, (0, 6))
-        st = Image.new("RGBA", (w, h), (20, 12, 6, 0))
-        st.putalpha(ms)
-        im.alpha_composite(st)
-        im.alpha_composite(Image.fromarray(np.dstack([rgb, np.asarray(m)]).astype(np.uint8), "RGBA"))
-        if im.width > W - 60:
-            im = im.resize((W - 60, int(im.height * (W - 60) / im.width)), Image.LANCZOS)
-        band = Image.new("RGBA", (W, im.height + 40), (0, 0, 0, 0))
-        a = np.zeros((band.height, W), np.float32)
-        a[:] = np.linspace(150, 0, band.height)[:, None]
-        band = Image.fromarray(np.dstack([np.zeros((band.height, W, 3)), a]).astype(np.uint8), "RGBA")
-        band.alpha_composite(im, ((W - im.width) // 2, 10))
-        d = ImageDraw.Draw(band)
-        cx, y = W // 2, im.height + 4
-        d.line([(cx - 150, y), (cx + 150, y)], fill=GOLD_HI + (220,), width=2)
-        d.polygon([(cx, y - 6), (cx + 6, y), (cx, y + 6), (cx - 6, y)], fill=GOLD_HI + (255,))
-        _cache["headline"] = band
-    cv.alpha_composite(_cache["headline"], (0, 118))
+        S = 2
+        txt = gold_text(HEADLINE, 62, NASTALIQ, grad=((255, 244, 214), (226, 182, 104)))
+        tw = min(txt.width - 40, W - 220)
+        if txt.width - 40 > tw:
+            txt = txt.resize((tw + 40, int(txt.height * (tw + 40) / txt.width)), Image.LANCZOS)
+        bw, bh = tw + 150, 118
+        w, h = bw + 40, bh + 40
+        im = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+
+        def cart(inset):
+            x0, y0, x1, y1 = 20 + inset, 20 + inset, 20 + bw - inset, 20 + bh - inset
+            cy = (y0 + y1) / 2
+            p = 34 - inset * 0.6
+            return [((x0 + p) * S, y0 * S), ((x1 - p) * S, y0 * S), (x1 * S, cy * S), ((x1 - p) * S, y1 * S),
+                    ((x0 + p) * S, y1 * S), (x0 * S, cy * S)]
+        glow = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        ImageDraw.Draw(glow).polygon(cart(0), fill=(0, 0, 0, 170))
+        im.alpha_composite(glow.filter(ImageFilter.GaussianBlur(10 * S)))
+        d.polygon(cart(0), fill=(8, 22, 44, 225))
+        d.polygon(cart(0), outline=GOLD_HI + (255,), width=3 * S)
+        d.polygon(cart(8), outline=GOLD + (200,), width=1 * S)
+        for x in (20 + 4, 20 + bw - 4):                       # diamonds at the points
+            cy = 20 + bh / 2
+            q = 9
+            d.polygon([((x) * S, (cy - q) * S), ((x + q) * S, cy * S), (x * S, (cy + q) * S), ((x - q) * S, cy * S)],
+                      fill=GOLD_HI + (255,))
+        im = im.resize((w, h), Image.LANCZOS)
+        im.alpha_composite(txt, ((w - txt.width) // 2, (h - txt.height) // 2 + 4))
+        _cache["headline"] = im
+    hl = _cache["headline"]
+    cv.alpha_composite(hl, ((W - hl.width) // 2, 112))
 
 
 def draw_logo(cv):
@@ -629,20 +650,52 @@ def _icon(kind, size=44):
     return _cache[key]
 
 
+SERIES = None
+CORM_IT = os.path.join(HERE, "fonts", "CormorantGaramond-500-italic.ttf")
+
+
+def series_title(spec):
+    """"SEERAT" in gold serif capitals with a light italic "insights" riding over it"""
+    big, small = spec.split("|")
+    f1 = font(CORMORANT, 92)
+    f2 = font(CORM_IT, 50)
+    w = int(f1.getlength(big)) + 60
+    h = 150
+    m = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(m).text((30, 40), big, font=f1, fill=255)
+    ys = np.linspace(0, 1, h)[:, None, None]
+    rgb = np.broadcast_to(np.array((255, 232, 120), np.float32) * (1 - ys) + np.array((222, 168, 40), np.float32) * ys,
+                          (h, w, 3))
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh.putalpha(m.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(7)))
+    out.alpha_composite(sh, (0, 5))
+    out.alpha_composite(Image.fromarray(np.dstack([rgb, np.asarray(m)]).astype(np.uint8), "RGBA"))
+    d = ImageDraw.Draw(out)
+    sw = f2.getlength(small)
+    d.text((w - sw - 26, 8), small, font=f2, fill=(255, 250, 240, 255), stroke_width=1, stroke_fill=(0, 0, 0, 160))
+    return out
+
+
 def draw_strip(cv):
     if "strip" not in _cache:
         st = Image.new("RGBA", (W, 96), (0, 0, 0, 0))
         d = ImageDraw.Draw(st)
-        d.rectangle([0, 0, W, 96], fill=(6, 14, 28, 215))
+        d.rectangle([0, 0, W, 96], fill=(6, 14, 28, 225))
         d.line([(0, 1), (W, 1)], fill=GOLD_HI + (200,), width=2)
         x = 40
         for k in ["fb", "yt", "tt", "ig", "x"]:
             st.alpha_composite(_icon(k), (x, 26))
             x += 60
-        nm = name_en(34)
-        st.alpha_composite(nm, (W - 24 - nm.width, 48 - nm.height // 2))
+        nm = name_en(46, 0.12)
+        st.alpha_composite(nm, (W - 20 - nm.width, 48 - nm.height // 2))
         _cache["strip"] = st
     cv.alpha_composite(_cache["strip"], (0, H - 104))
+    if SERIES:
+        if "series" not in _cache:
+            _cache["series"] = series_title(SERIES)
+        sr = _cache["series"]
+        cv.alpha_composite(sr, (W - 24 - sr.width, H - 104 - sr.height + 18))
 
 
 # ---- bold words (JTR-style) and giant background words ---------------------------------------------
@@ -827,8 +880,9 @@ def main():
     pieces, total = build_cuts(plan, work)
     overlays = resolve_overlays(plan, pieces)
     plan_lower = plan.get("lower_third_at")
-    global HEADLINE
+    global HEADLINE, SERIES
     HEADLINE = plan.get("headline")
+    SERIES = plan.get("series")
     eyes = plan["eyes"]
     json.dump({"pieces": pieces, "total": total}, open(os.path.join(work, "cuts.json"), "w"), indent=1)
     print(f"{len(pieces)} pieces, {total:.1f} s")
