@@ -474,6 +474,7 @@ SETS = {"library": set_library, "broadcast": set_broadcast, "arches": set_arches
 
 
 VERTICAL = False
+SUFFIX = ""
 
 
 def render(sc, path, preview, transparent):
@@ -525,7 +526,7 @@ def save_meta(sc, name):
     one = px((1.0, 0, 1.22))
     desk_back = px((0, -0.30, DESK_TOP))
     meta = {"eye_x": eye[0], "eye_y": eye[1], "ppm": one[0] - eye[0], "desk_back_y": desk_back[1]}
-    with open(os.path.join(OUT, f"{name}{'_v' if VERTICAL else ''}_meta.json"), "w") as f:
+    with open(os.path.join(OUT, f"{name}{SUFFIX or ('_v' if VERTICAL else '')}_meta.json"), "w") as f:
         json.dump(meta, f, indent=1)
     print(name, meta)
 
@@ -534,13 +535,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", action="store_true")
     ap.add_argument("--only", default=",".join(SETS))
+    ap.add_argument("--vwide", action="store_true",
+                    help="9:16 medium-wide camera: the seated presenter at full frame width with the room around him")
     ap.add_argument("--vertical", action="store_true",
                     help="9:16 close camera for reels (presenter fills the width; no desk layer)")
     a = ap.parse_args(sys.argv[1:])
     os.makedirs(OUT, exist_ok=True)
     textures()
+    global VERTICAL, CAM, LENS, PITCH, SUFFIX
+    if a.vwide:
+        VERTICAL, CAM, LENS, PITCH, SUFFIX = True, (0.0, -0.93, 1.30), 52, 7.0, "_vw"
+        for name in a.only.split(","):
+            sc, style, pr = SETS[name](random.Random(11))
+            save_meta(sc, name)
+            sc.cycles.samples = 40
+            render(sc, os.path.join(OUT, f"{name}_vw_bg.png"), a.preview, False)
+        return
     if a.vertical:
-        global VERTICAL, CAM, LENS, PITCH
         VERTICAL, CAM, LENS, PITCH = True, (0.0, -0.7, 1.26), 52, -2.0
         for name in a.only.split(","):
             rnd = random.Random(11)
