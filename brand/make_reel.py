@@ -65,7 +65,7 @@ def snap(edb, t, lo=-0.12, hi=0.12):
     return (a + int(np.argmin(edb[a:b + 1]))) / 50 if b > a else t
 
 
-def subclips(edb, t0, t1, thr=-42, min_gap=0.32, keep=0.16):
+def subclips(edb, t0, t1, thr=-42, min_gap=0.42, keep=0.26):
     """split [t0,t1] at long pauses; each pause is shortened to `keep` seconds"""
     a, b = int(t0 * 50), int(t1 * 50)
     quiet = edb[a:b] < thr
@@ -525,6 +525,49 @@ NASKH = os.path.join(ROOT, ".claude", "skills", "dai-video-editor", "assets", "f
 LOGO = os.path.join(HERE, "logo", "logo_premium_navy_transparent.png")
 
 
+HEADLINE = None
+
+
+def draw_headline(cv):
+    """persistent title under the logo row: white Nastaliq with a gold key phrase, stroke and soft shadow"""
+    if not HEADLINE:
+        return
+    if "headline" not in _cache:
+        f = font(NASTALIQ, 64)
+        txt = HEADLINE
+        l, t, r, b = f.getbbox(txt, direction="rtl", stroke_width=4)
+        pad = 30
+        w, h = r - l + 2 * pad, b - t + 2 * pad
+        m = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(m).text((pad - l, pad - t), txt, font=f, fill=255, direction="rtl")
+        ms = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(ms).text((pad - l, pad - t), txt, font=f, fill=255, direction="rtl", stroke_width=4)
+        ys = np.linspace(0, 1, h)[:, None, None]
+        rgb = np.broadcast_to(np.array((255, 246, 226), np.float32) * (1 - ys) + np.array((236, 200, 130), np.float32) * ys,
+                              (h, w, 3))
+        im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        sh.putalpha(ms.filter(ImageFilter.GaussianBlur(8)))
+        im.alpha_composite(sh, (0, 6))
+        st = Image.new("RGBA", (w, h), (20, 12, 6, 0))
+        st.putalpha(ms)
+        im.alpha_composite(st)
+        im.alpha_composite(Image.fromarray(np.dstack([rgb, np.asarray(m)]).astype(np.uint8), "RGBA"))
+        if im.width > W - 60:
+            im = im.resize((W - 60, int(im.height * (W - 60) / im.width)), Image.LANCZOS)
+        band = Image.new("RGBA", (W, im.height + 40), (0, 0, 0, 0))
+        a = np.zeros((band.height, W), np.float32)
+        a[:] = np.linspace(150, 0, band.height)[:, None]
+        band = Image.fromarray(np.dstack([np.zeros((band.height, W, 3)), a]).astype(np.uint8), "RGBA")
+        band.alpha_composite(im, ((W - im.width) // 2, 10))
+        d = ImageDraw.Draw(band)
+        cx, y = W // 2, im.height + 4
+        d.line([(cx - 150, y), (cx + 150, y)], fill=GOLD_HI + (220,), width=2)
+        d.polygon([(cx, y - 6), (cx + 6, y), (cx, y + 6), (cx - 6, y)], fill=GOLD_HI + (255,))
+        _cache["headline"] = band
+    cv.alpha_composite(_cache["headline"], (0, 118))
+
+
 def draw_logo(cv):
     if "logo" not in _cache:
         lg = Image.open(LOGO).convert("RGBA")
@@ -765,6 +808,7 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
         draw_logo(cv)
         draw_timer(cv, t, total)
         draw_strip(cv)
+        draw_headline(cv)
     return cv
 
 
@@ -783,6 +827,8 @@ def main():
     pieces, total = build_cuts(plan, work)
     overlays = resolve_overlays(plan, pieces)
     plan_lower = plan.get("lower_third_at")
+    global HEADLINE
+    HEADLINE = plan.get("headline")
     eyes = plan["eyes"]
     json.dump({"pieces": pieces, "total": total}, open(os.path.join(work, "cuts.json"), "w"), indent=1)
     print(f"{len(pieces)} pieces, {total:.1f} s")
