@@ -25,6 +25,7 @@ CAM = (0.0, -2.8, 1.30)         # presenter at y=0, eye line 1.22 m (seated); ca
 PITCH = -4.0                    # degrees, looking slightly down onto the desk
 LENS = 60
 DESK_TOP = 0.90
+PROP_X = 1.0                    # props pulled toward the centre for the narrow 9:16 desk camera
 
 NAVY = (0.012, 0.035, 0.085)
 GOLD = (1.0, 0.72, 0.36)
@@ -285,14 +286,14 @@ def props(rnd, mic=False, lamp=True):
     cover = mat("cover", (0.30, 0.05, 0.04), rough=0.4, coat=0.3)
     gold = mat("gold", GOLD, rough=0.3, metal=1.0)
     # an open book lying on the desk, front-left, slightly turned
-    cx, cy = -0.40, -0.55
+    cx, cy = -0.40 * PROP_X, -0.55
     rz = math.radians(8)
     objs.append(box("cover", (cx, cy, DESK_TOP + 0.006), (0.32, 0.22, 0.012), cover, rot=(0, 0, rz), bev=0.003))
     for s_ in (-1, 1):
         objs.append(box("pages", (cx + s_ * 0.078 * math.cos(rz), cy + s_ * 0.078 * math.sin(rz), DESK_TOP + 0.02),
                         (0.148, 0.20, 0.018), paper, rot=(0, math.radians(-s_ * 4), rz), bev=0.004))
     # stack of books, front-right
-    x, y, z = 0.40, -0.48, DESK_TOP
+    x, y, z = 0.40 * PROP_X, -0.48, DESK_TOP
     for i in range(3):
         t = rnd.uniform(0.035, 0.055)
         c = mat(f"stack{i}", rnd.choice([(0.05, 0.10, 0.07), (0.25, 0.05, 0.04), (0.04, 0.05, 0.12)]), rough=0.45, coat=0.2)
@@ -302,16 +303,17 @@ def props(rnd, mic=False, lamp=True):
                         rot=(0, 0, 0)))
         z += t
     if lamp:
+        lx = 0.62 * PROP_X
         brass = mat("brass", (0.9, 0.62, 0.3), rough=0.25, metal=1.0)
-        objs.append(cyl("lampbase", (0.62, -0.32, DESK_TOP + 0.01), 0.07, 0.02, brass))
-        objs.append(cyl("lampstem", (0.62, -0.32, DESK_TOP + 0.2), 0.008, 0.38, brass))
+        objs.append(cyl("lampbase", (lx, -0.32, DESK_TOP + 0.01), 0.07, 0.02, brass))
+        objs.append(cyl("lampstem", (lx, -0.32, DESK_TOP + 0.2), 0.008, 0.38, brass))
         shade = mat("shade", (0.45, 0.32, 0.2), rough=0.7, emis=((1.0, 0.70, 0.40), 0.9))
         bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=0.085, radius2=0.045, depth=0.11,
-                                        location=(0.62, -0.32, DESK_TOP + 0.42))
+                                        location=(lx, -0.32, DESK_TOP + 0.42))
         o = bpy.context.active_object
         o.data.materials.append(shade)
         objs.append(o)
-        light("POINT", (0.62, -0.32, DESK_TOP + 0.38), 10, (1.0, 0.75, 0.45), size=0.05)
+        light("POINT", (lx, -0.32, DESK_TOP + 0.38), 10, (1.0, 0.75, 0.45), size=0.05)
     if mic:
         black = mat("mic", (0.008, 0.008, 0.009), rough=0.4, coat=0.2)
         metal = mat("micarm", (0.04, 0.04, 0.045), rough=0.3, metal=0.8)
@@ -535,6 +537,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", action="store_true")
     ap.add_argument("--only", default=",".join(SETS))
+    ap.add_argument("--vdesk", default="", help="y,z,lens,pitch of a 9:16 camera behind the desk")
     ap.add_argument("--vwide", action="store_true",
                     help="9:16 medium-wide camera: the seated presenter at full frame width with the room around him")
     ap.add_argument("--vertical", action="store_true",
@@ -550,6 +553,18 @@ def main():
             save_meta(sc, name)
             sc.cycles.samples = 40
             render(sc, os.path.join(OUT, f"{name}_vw_bg.png"), a.preview, False)
+        return
+    if a.vdesk:
+        # 9:16 camera behind the anchor desk: presenter seated, desk + books in the foreground
+        y, z, lens, pitch = [float(v) for v in a.vdesk.split(",")]
+        global PROP_X
+        VERTICAL, CAM, LENS, PITCH, SUFFIX, PROP_X = True, (0.0, y, z), lens, pitch, "_vd", 0.62
+        for name in a.only.split(","):
+            sc = build(name, False)
+            save_meta(sc, name)
+            render(sc, os.path.join(OUT, f"{name}_vd_bg.png"), a.preview, False)
+            sc = build(name, True)
+            render(sc, os.path.join(OUT, f"{name}_vd_fg.png"), a.preview, True)
         return
     if a.vertical:
         VERTICAL, CAM, LENS, PITCH = True, (0.0, -0.7, 1.26), 52, -2.0

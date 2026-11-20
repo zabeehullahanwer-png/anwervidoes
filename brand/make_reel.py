@@ -34,7 +34,7 @@ OUT = os.path.join(ROOT, "videos", "edited")
 PLATES = os.path.join(HERE, "studio", "plates")
 W, H, FPS = 1080, 1920, 30
 KW, KH = 1600, 900
-ZOOM = {"W": 1.07, "C": 1.36, "M": 1.2}
+ZOOM = {"W": 1.55, "M": 1.8, "C": 2.1}
 _cache = {}
 
 
@@ -185,33 +185,35 @@ def frames_of(p):
 
 # ---- studio composition -----------------------------------------------------------------------
 
+PLATE = os.environ.get("PLATE", "library_vd")          # 9:16 studio camera behind the desk (bg + fg layers)
+EYE_Y = {"W": 860, "M": 870, "C": 880}               # where the eyes sit on screen for each shot
+
+
 def plate():
     if "plate" not in _cache:
-        _cache["plate"] = Image.open(os.path.join(PLATES, "library_vw_bg.png")).convert("RGB")
-        _cache["meta"] = json.load(open(os.path.join(PLATES, "library_vw_meta.json")))
+        _cache["plate"] = Image.open(os.path.join(PLATES, f"{PLATE}_bg.png")).convert("RGB")
+        fgp = os.path.join(PLATES, f"{PLATE}_fg.png")
+        _cache["fg"] = Image.open(fgp).convert("RGBA") if os.path.exists(fgp) else None
+        _cache["meta"] = json.load(open(os.path.join(PLATES, f"{PLATE}_meta.json")))
     return _cache["plate"], _cache["meta"]
 
 
-def studio_frame(person, eyes, z):
-    """plate + presenter at zoom z, the eye line held at the plate's eye height"""
+def studio_frame(person, eyes, z, eye_y):
+    """studio camera zoomed by z; the presenter sits between the room and the desk layer, eyes at eye_y"""
     pl, meta = plate()
+    fg = _cache["fg"]
     ex, ey, iod = eyes
     s = meta["ppm"] * 0.063 / iod
     E = (meta["eye_x"], meta["eye_y"])
-    if z != 1:
-        cw, ch = W / z, H / z
-        x0, y0 = E[0] - E[0] / z, E[1] - E[1] / z
-        bg = pl.crop((int(x0), int(y0), int(x0 + cw), int(y0 + ch))).resize((W, H), Image.BICUBIC)
-    else:
-        bg = pl.copy()
-    bg = bg.convert("RGBA")
+    x0, y0 = E[0] - (W / 2) / z, E[1] - eye_y / z
+    box = (int(round(x0)), int(round(y0)), int(round(x0 + W / z)), int(round(y0 + H / z)))
+    bg = pl.crop(box).resize((W, H), Image.BICUBIC).convert("RGBA")
     ss = s * z
     pw, ph = int(KW * ss), int(KH * ss)
     p = person.resize((pw, ph), Image.BILINEAR)
-    ox, oy = int(E[0] - ex * ss), int(E[1] - ey * ss)
-    bg.paste(p, (ox, oy), p)
-    if oy + ph < H:                                    # never show the bottom edge of the recording
-        bg.paste(p.crop((0, ph - 2, pw, ph)).resize((pw, H - oy - ph + 2)), (ox, oy + ph - 2))
+    bg.paste(p, (int(W / 2 - ex * ss), int(eye_y - ey * ss)), p)
+    if fg is not None:
+        bg.alpha_composite(fg.crop(box).resize((W, H), Image.BICUBIC))
     return bg
 
 
@@ -397,7 +399,7 @@ def full_card(card, t, dur):
     """full-screen ayah card over the blurred studio"""
     if "fc_bg" not in _cache:
         pl, _ = plate()
-        b = pl.filter(ImageFilter.GaussianBlur(18)).convert("RGBA")
+        b = pl.resize((W, H)).filter(ImageFilter.GaussianBlur(18)).convert("RGBA")
         b.alpha_composite(Image.new("RGBA", (W, H), DEEP + (170,)))
         _cache["fc_bg"] = b
     cv = _cache["fc_bg"].copy()
@@ -463,13 +465,13 @@ def frame_at(fi, pieces, overlays, piece, person, eyes):
         z = ZOOM[piece["shot"]]
         if piece.get("push"):
             z *= 1 + 0.06 * (t - piece["t"]) / max(0.1, piece["out"] - piece["in"])
-        cv = studio_frame(person, eyes, z)
+        cv = studio_frame(person, eyes, z, EYE_Y[piece["shot"]])
         cv.alpha_composite(shade())
         for ov in overlays:
             if ov["t"] <= t < ov["t"] + ov["dur"]:
                 lt = t - ov["t"]
                 if ov["type"] == "word":
-                    draw_word(cv, ov, lt, ov.get("y", 640))
+                    draw_word(cv, ov, lt, ov.get("y", 540))
                 elif ov["type"] == "list":
                     draw_list(cv, ov["items"], t, ov.get("y", 380))
                 elif ov["type"] == "card":
