@@ -105,7 +105,7 @@ def build_cuts(plan, work):
             # frame-exact lengths so audio and video stay in step
             n = max(1, int(round((y - x) * FPS)))
             pieces.append({"take": tk, "in": x, "out": x + n / FPS, "shot": shots[k % len(shots)],
-                           "push": seg.get("push", False), "seg_start": k == 0 and len(pieces) > 0})
+                           "push": seg.get("push", False), "seg_start": k == 0 and len(pieces) > 0, "alt": k % 2 == 1})
     t = 0.0
     for p in pieces:
         p["t"] = t
@@ -216,7 +216,10 @@ EYE_Y = {"W": 860, "M": 870, "C": 880}               # where the eyes sit on scr
 
 def plate():
     if "plate" not in _cache:
-        _cache["plate"] = Image.open(os.path.join(PLATES, f"{PLATE}_bg.png")).convert("RGB")
+        from PIL import ImageEnhance
+        pl = Image.open(os.path.join(PLATES, f"{PLATE}_bg.png")).convert("RGB")
+        pl = ImageEnhance.Brightness(pl).enhance(float(os.environ.get("ROOM_EXPOSURE", "1.22")))
+        _cache["plate"] = ImageEnhance.Contrast(pl).enhance(0.92)
         fgp = os.path.join(PLATES, f"{PLATE}_fg.png")
         _cache["fg"] = Image.open(fgp).convert("RGBA") if os.path.exists(fgp) else None
         _cache["meta"] = json.load(open(os.path.join(PLATES, f"{PLATE}_meta.json")))
@@ -231,12 +234,12 @@ def relight(person, eyes):
     if key not in _cache:
         yy, xx = np.mgrid[0:KH, 0:KW].astype(np.float32)
         k = np.exp(-(((xx - ex - 30) / 300) ** 2 + ((yy - ey - 80) / 340) ** 2) / 2)
-        gain = (1.0 + 0.24 * k)[..., None] * np.array([1.02, 0.97, 0.965], np.float32)
+        gain = (1.08 + 0.34 * k)[..., None] * np.array([1.0, 0.985, 0.995], np.float32)
         side = np.clip((xx - ex + 120) / 500, 0, 1) * 0.8 + np.clip((ey - yy + 200) / 300, 0, 1) * 0.5
         _cache[key] = (gain, np.clip(side, 0, 1))
     gain, side = _cache[key]
     a = np.asarray(person).astype(np.float32) / 255
-    rgb = np.clip(a[..., :3], 0, 1) ** 0.9 * 1.03          # lift the shadows a little
+    rgb = np.clip(a[..., :3], 0, 1) ** 0.84 * 1.02         # lift the shadows (high-key, like a lit set)
     rgb = rgb * gain
     al = person.getchannel("A")
     inner = np.asarray(al.filter(ImageFilter.MinFilter(9)).filter(ImageFilter.GaussianBlur(4))).astype(np.float32) / 255
@@ -731,6 +734,8 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
         z = ZOOM[piece["shot"]]
         if piece.get("push"):
             z *= 1 + 0.06 * (t - piece["t"]) / max(0.1, piece["out"] - piece["in"])
+        if piece.get("alt"):
+            z *= 1.12                                              # every other piece of a sentence: tighter framing
         if piece.get("seg_start") and CUT_SFX and t - piece["t"] < 0.22:
             z *= 1 + 0.035 * (1 - (t - piece["t"]) / 0.22) ** 2      # tiny punch with the click
         painters = [bg_word_painter(ov, t - ov["t"]) for ov in active if ov["type"] == "bgword"]
@@ -798,7 +803,13 @@ def main():
     wav = os.path.join(work, "audio.wav")
     make_audio(pieces, total, work, wav)
     if CUT_SFX and os.path.exists(CUT_SFX):
-        add_clicks(wav, [p["t"] for p in pieces if p.get("seg_start")], CUT_SFX)
+        brs = [ov["t"] for ov in overlays if ov["type"] == "broll"]
+        times, last = [], -99
+        for p in pieces:
+            if p.get("seg_start") and p["t"] - last >= 6 and all(abs(p["t"] - b) > 0.6 for b in brs):
+                times.append(p["t"])
+                last = p["t"]
+        add_clicks(wav, times, CUT_SFX, gain=float(os.environ.get("CUT_GAIN", "0.5")))
     out = os.path.join(OUT, f"{name}{'_draft' if '--draft' in sys.argv else ''}.mp4")
     nfr = int(round(total * FPS))
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
@@ -807,15 +818,21 @@ def main():
                             "-t", f"{total}", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-c:a", "aac",
                             "-b:a", "192k", "-movflags", "+faststart", out], stdin=subprocess.PIPE)
     fi = 0
+    prev = None
     for p in pieces:
         if "card" in p:
+            prev = None
             for _ in range(int(round(p["dur"] * FPS))):
                 enc.stdin.write(frame_at(fi, pieces, overlays, p, None, None, total).convert("RGB").tobytes())
                 fi += 1
         else:
             ey = eyes[p["take"]]
-            for fr in frames_of(p):
-                enc.stdin.write(frame_at(fi, pieces, overlays, p, key(fr), ey, total).convert("RGB").tobytes())
+            for j, fr in enumerate(frames_of(p)):
+                img = frame_at(fi, pieces, overlays, p, key(fr), ey, total).convert("RGB")
+                if j < 3 and prev is not None and not p.get("seg_start"):
+                    img = Image.blend(prev, img, (j + 1) / 4)      # hide the jump of an internal cut
+                enc.stdin.write(img.tobytes())
+                prev = img
                 fi += 1
         print(f"  {fi}/{nfr} frames", flush=True)
     enc.stdin.close()
