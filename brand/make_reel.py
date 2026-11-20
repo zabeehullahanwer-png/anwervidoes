@@ -105,7 +105,7 @@ def build_cuts(plan, work):
             # frame-exact lengths so audio and video stay in step
             n = max(1, int(round((y - x) * FPS)))
             pieces.append({"take": tk, "in": x, "out": x + n / FPS, "shot": shots[k % len(shots)],
-                           "push": seg.get("push", False)})
+                           "push": seg.get("push", False), "seg_start": k == 0 and len(pieces) > 0})
     t = 0.0
     for p in pieces:
         p["t"] = t
@@ -159,6 +159,25 @@ def make_audio(pieces, total, work, path):
                     "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", path], check=True)
 
 
+def add_clicks(wav, times, sfx, gain=0.32):
+    """mix a short click at every sentence cut (a hair before the cut, as editors place it)"""
+    with wave.open(wav, "rb") as w:
+        sr, ch = w.getframerate(), w.getnchannels()
+        a = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32).reshape(-1, ch) / 32768
+    with wave.open(sfx, "rb") as w:
+        c = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32).reshape(-1, w.getnchannels())
+        c = c[:, :1] / 32768
+    for t in times:
+        i = max(0, int((t - 0.015) * sr))
+        j = min(len(a), i + len(c))
+        a[i:j] += c[: j - i] * gain
+    with wave.open(wav, "wb") as w:
+        w.setnchannels(ch)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes((np.clip(a, -1, 1) * 32767).astype(np.int16).tobytes())
+
+
 # ---- keying -----------------------------------------------------------------------------------
 
 def key(frame):
@@ -204,6 +223,29 @@ def plate():
     return _cache["plate"], _cache["meta"]
 
 
+def relight(person, eyes):
+    """virtual lighting for a flatly lit phone recording: a soft warm key on the face, lifted shadows,
+    and a warm rim on the lamp side (screen right) and the top of the cap"""
+    ex, ey, iod = eyes
+    key = ("light", int(ex), int(ey))
+    if key not in _cache:
+        yy, xx = np.mgrid[0:KH, 0:KW].astype(np.float32)
+        k = np.exp(-(((xx - ex - 30) / 300) ** 2 + ((yy - ey - 80) / 340) ** 2) / 2)
+        gain = (1.0 + 0.24 * k)[..., None] * np.array([1.02, 0.97, 0.965], np.float32)
+        side = np.clip((xx - ex + 120) / 500, 0, 1) * 0.8 + np.clip((ey - yy + 200) / 300, 0, 1) * 0.5
+        _cache[key] = (gain, np.clip(side, 0, 1))
+    gain, side = _cache[key]
+    a = np.asarray(person).astype(np.float32) / 255
+    rgb = np.clip(a[..., :3], 0, 1) ** 0.9 * 1.03          # lift the shadows a little
+    rgb = rgb * gain
+    al = person.getchannel("A")
+    inner = np.asarray(al.filter(ImageFilter.MinFilter(9)).filter(ImageFilter.GaussianBlur(4))).astype(np.float32) / 255
+    rim = np.clip(a[..., 3] - inner, 0, 1) * side
+    rgb = rgb + rim[..., None] * np.array([1.0, 0.80, 0.52], np.float32) * 0.55
+    out = np.dstack([np.clip(rgb, 0, 1), a[..., 3]])
+    return Image.fromarray((out * 255).astype(np.uint8), "RGBA")
+
+
 def studio_frame(person, eyes, z, eye_y, behind=None):
     """studio camera zoomed by z; the presenter sits between the room and the desk layer, eyes at eye_y"""
     pl, meta = plate()
@@ -218,6 +260,8 @@ def studio_frame(person, eyes, z, eye_y, behind=None):
         behind(bg)
     ss = s * z
     pw, ph = int(KW * ss), int(KH * ss)
+    if os.environ.get("RELIGHT", "1") == "1":
+        person = relight(person, eyes)
     p = person.resize((pw, ph), Image.BILINEAR)
     bg.paste(p, (int(W / 2 - ex * ss), int(eye_y - ey * ss)), p)
     if fg is not None:
@@ -687,6 +731,8 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
         z = ZOOM[piece["shot"]]
         if piece.get("push"):
             z *= 1 + 0.06 * (t - piece["t"]) / max(0.1, piece["out"] - piece["in"])
+        if piece.get("seg_start") and CUT_SFX and t - piece["t"] < 0.22:
+            z *= 1 + 0.035 * (1 - (t - piece["t"]) / 0.22) ** 2      # tiny punch with the click
         painters = [bg_word_painter(ov, t - ov["t"]) for ov in active if ov["type"] == "bgword"]
         cv = studio_frame(person, eyes, z, EYE_Y[piece["shot"]],
                           (lambda bg: [p(bg) for p in painters]) if painters else None)
@@ -718,6 +764,7 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
 
 
 plan_lower = None
+CUT_SFX = os.environ.get("CUT_SFX")
 
 
 def main():
@@ -750,6 +797,8 @@ def main():
         return
     wav = os.path.join(work, "audio.wav")
     make_audio(pieces, total, work, wav)
+    if CUT_SFX and os.path.exists(CUT_SFX):
+        add_clicks(wav, [p["t"] for p in pieces if p.get("seg_start")], CUT_SFX)
     out = os.path.join(OUT, f"{name}{'_draft' if '--draft' in sys.argv else ''}.mp4")
     nfr = int(round(total * FPS))
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
