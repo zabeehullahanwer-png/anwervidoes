@@ -281,7 +281,13 @@ def cmd_transcribe(a):
     model = WhisperModel(a.model, device=a.device, compute_type="int8" if a.device == "cpu" else "float16")
     prompt = a.prompt or ("بسم اللہ الرحمن الرحیم۔ حدیث، قرآن، رسول اللہ صلی اللہ علیہ وسلم، صحابہ کرام، "
                           "اللہ تعالیٰ، نماز، روزہ، زکوٰۃ۔")
-    segs, info = model.transcribe(wav, language=None if a.lang == "auto" else a.lang, word_timestamps=True,
+    # Read the 16 kHz mono WAV ourselves: faster-whisper's own decoder depends on PyAV
+    # and breaks across PyAV versions (e.g. 'metadata_errors' keyword in av>=15).
+    import wave
+    import numpy as np
+    with wave.open(wav, "rb") as wf:
+        audio = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    segs, info = model.transcribe(audio, language=None if a.lang == "auto" else a.lang, word_timestamps=True,
                                   vad_filter=True, beam_size=5, initial_prompt=prompt)
     out = {"language": info.language, "segments": []}
     for s in segs:
