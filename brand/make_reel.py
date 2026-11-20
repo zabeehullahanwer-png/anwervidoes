@@ -65,7 +65,7 @@ def snap(edb, t, lo=-0.12, hi=0.12):
     return (a + int(np.argmin(edb[a:b + 1]))) / 50 if b > a else t
 
 
-def subclips(edb, t0, t1, thr=-42, min_gap=0.45, keep=0.24):
+def subclips(edb, t0, t1, thr=-42, min_gap=0.32, keep=0.16):
     """split [t0,t1] at long pauses; each pause is shortened to `keep` seconds"""
     a, b = int(t0 * 50), int(t1 * 50)
     quiet = edb[a:b] < thr
@@ -142,11 +142,17 @@ def make_audio(pieces, total, work, path):
         f"loudnorm=I=-14:TP=-1.5:LRA=7,afade=t=in:d=0.1,afade=t=out:st={total - 0.6}:d=0.6[v]"
     nasheed = os.environ.get("NASHEED")
     if nasheed and os.path.exists(nasheed):
-        parts += ["-stream_loop", "-1", "-i", nasheed]
-        fc += (f";[{n}:a]aformat=sample_rates=48000:channel_layouts=mono,atrim=0:{total},volume=0.22,"
-               f"afade=t=in:d=1.5,afade=t=out:st={total - 2}:d=2[bed];[v]asplit[v1][vk];"
-               f"[bed][vk]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[bd];"
-               f"[v1][bd]amix=inputs=2:normalize=0[a]")
+        nd = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+                                   nasheed], capture_output=True, text=True).stdout)
+        parts += ["-i", nasheed, "-i", nasheed]
+        x = 4.0                                            # crossfade when the nasheed loops
+        fc += (f";[{n}:a]aformat=sample_rates=48000:channel_layouts=mono[n1];"
+               f"[{n + 1}:a]aformat=sample_rates=48000:channel_layouts=mono[n2];"
+               f"[n1][n2]acrossfade=d={x}:c1=tri:c2=tri,atrim=0:{total},asetpts=PTS-STARTPTS,"
+               f"loudnorm=I=-31:TP=-8:LRA=11,afade=t=in:d=2,afade=t=out:st={total - 2.5}:d=2.5[bed];"
+               f"[v]asplit[v1][vk];"
+               f"[bed][vk]sidechaincompress=threshold=0.03:ratio=5:attack=40:release=600:makeup=1[bd];"
+               f"[v1][bd]amix=inputs=2:normalize=0,alimiter=limit=0.89[a]")
     else:
         fc = fc[:-3] + "[a]"
     subprocess.run(["ffmpeg", "-v", "error", "-y", *parts, "-filter_complex", fc, "-map", "[a]", "-t", f"{total}",
@@ -198,7 +204,7 @@ def plate():
     return _cache["plate"], _cache["meta"]
 
 
-def studio_frame(person, eyes, z, eye_y):
+def studio_frame(person, eyes, z, eye_y, behind=None):
     """studio camera zoomed by z; the presenter sits between the room and the desk layer, eyes at eye_y"""
     pl, meta = plate()
     fg = _cache["fg"]
@@ -208,6 +214,8 @@ def studio_frame(person, eyes, z, eye_y):
     x0, y0 = E[0] - (W / 2) / z, E[1] - eye_y / z
     box = (int(round(x0)), int(round(y0)), int(round(x0 + W / z)), int(round(y0 + H / z)))
     bg = pl.crop(box).resize((W, H), Image.BICUBIC).convert("RGBA")
+    if behind is not None:
+        behind(bg)
     ss = s * z
     pw, ph = int(KW * ss), int(KH * ss)
     p = person.resize((pw, ph), Image.BILINEAR)
@@ -387,7 +395,7 @@ def draw_lower(cv, t):
     n = plain_text(NAME, 52)
     hd = plain_text(HANDLE, 26, GOLD_HI, POPPINS, None)
     x = W - 60 - n.width + int(50 * (1 - kin))
-    y = 1600
+    y = 1560
     a = kin * kout
     d = ImageDraw.Draw(cv)
     d.line([(W - 60, y + 40), (W - 60, y + 170)], fill=GOLD_HI + (int(255 * a),), width=4)
@@ -432,6 +440,189 @@ def full_card(card, t, dur):
     return cv
 
 
+
+# ---- channel furniture: logo, countdown, social strip --------------------------------------------
+NASKH = os.path.join(ROOT, ".claude", "skills", "dai-video-editor", "assets", "fonts", "NotoNaskhArabic-Bold.ttf")
+LOGO = os.path.join(HERE, "logo", "logo_premium_navy_transparent.png")
+
+
+def draw_logo(cv):
+    if "logo" not in _cache:
+        lg = Image.open(LOGO).convert("RGBA")
+        lg.thumbnail((150, 150), Image.LANCZOS)
+        sh = Image.new("RGBA", (lg.width + 30, lg.height + 30), (0, 0, 0, 0))
+        m = lg.getchannel("A").filter(ImageFilter.GaussianBlur(6))
+        dark = Image.new("RGBA", lg.size, (0, 0, 0, 0))
+        dark.putalpha(m.point(lambda v: int(v * 0.7)))
+        sh.alpha_composite(dark, (15, 19))
+        sh.alpha_composite(lg, (15, 15))
+        _cache["logo"] = sh
+    cv.alpha_composite(_cache["logo"], (22, 36))
+
+
+def draw_timer(cv, t, total):
+    left = max(0, total - t)
+    txt = f"{int(left // 60):02d}:{int(left % 60):02d}"
+    f = font(POPPINS, 30)
+    d = ImageDraw.Draw(cv)
+    w = int(d.textlength(txt, font=f)) + 70
+    x1, y0 = W - 30, 62
+    d.rounded_rectangle([x1 - w, y0, x1, y0 + 52], 26, fill=(8, 18, 34, 200), outline=GOLD_HI + (200,), width=2)
+    blink = 255 if int(t * 2) % 2 == 0 else 120
+    d.ellipse([x1 - w + 18, y0 + 18, x1 - w + 34, y0 + 34], fill=(230, 50, 50, blink))
+    d.text((x1 - w + 46, y0 + 7), txt, font=f, fill=(255, 255, 255, 240))
+    # progress line along the very bottom
+    d.rectangle([0, H - 8, W, H], fill=(0, 0, 0, 120))
+    d.rectangle([W - int(W * t / total), H - 8, W, H], fill=GOLD_HI + (255,))
+
+
+def _icon(kind, size=44):
+    key = ("icon", kind)
+    if key in _cache:
+        return _cache[key]
+    S = 4
+    im = Image.new("RGBA", (size * S, size * S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    c = GOLD_HI + (255,)
+    z = size * S
+    lw = 3 * S
+    if kind == "fb":
+        d.ellipse([0, 0, z - 1, z - 1], fill=c)
+        d.text((z * 0.36, z * 0.08), "f", font=font(POPPINS, int(z * 0.78)), fill=DEEP + (255,))
+    elif kind == "yt":
+        d.rounded_rectangle([0, z * 0.18, z - 1, z * 0.82], z * 0.18, fill=c)
+        d.polygon([(z * 0.40, z * 0.34), (z * 0.40, z * 0.66), (z * 0.68, z * 0.50)], fill=DEEP + (255,))
+    elif kind == "ig":
+        d.rounded_rectangle([lw, lw, z - lw, z - lw], z * 0.28, outline=c, width=lw)
+        d.ellipse([z * 0.3, z * 0.3, z * 0.7, z * 0.7], outline=c, width=lw)
+        d.ellipse([z * 0.70, z * 0.18, z * 0.80, z * 0.28], fill=c)
+    elif kind == "tt":
+        d.line([(z * 0.55, z * 0.08), (z * 0.55, z * 0.70)], fill=c, width=lw + S)
+        d.ellipse([z * 0.22, z * 0.55, z * 0.58, z * 0.90], outline=c, width=lw + S)
+        d.arc([z * 0.55, z * 0.0, z * 0.95, z * 0.40], 90, 180, fill=c, width=lw + S)
+    elif kind == "x":
+        d.line([(z * 0.15, z * 0.12), (z * 0.85, z * 0.88)], fill=c, width=lw + S)
+        d.line([(z * 0.85, z * 0.12), (z * 0.15, z * 0.88)], fill=c, width=lw)
+    _cache[key] = im.resize((size, size), Image.LANCZOS)
+    return _cache[key]
+
+
+def draw_strip(cv):
+    if "strip" not in _cache:
+        st = Image.new("RGBA", (W, 96), (0, 0, 0, 0))
+        d = ImageDraw.Draw(st)
+        d.rectangle([0, 0, W, 96], fill=(6, 14, 28, 215))
+        d.line([(0, 1), (W, 1)], fill=GOLD_HI + (200,), width=2)
+        x = 40
+        for k in ["fb", "yt", "tt", "ig", "x"]:
+            st.alpha_composite(_icon(k), (x, 26))
+            x += 60
+        hd = plain_text(HANDLE, 30, (255, 255, 255), POPPINS, None)
+        st.alpha_composite(hd, (x + 4, 48 - hd.height // 2))
+        nm = plain_text(NAME, 40, GOLD_HI)
+        st.alpha_composite(nm, (W - 30 - nm.width, 48 - nm.height // 2 - 4))
+        _cache["strip"] = st
+    cv.alpha_composite(_cache["strip"], (0, H - 104))
+
+
+# ---- bold words (JTR-style) and giant background words ---------------------------------------------
+
+def bold_word(txt, size, fill=(255, 255, 255), hl=None):
+    key = ("bw", txt, size, fill, hl)
+    if key in _cache:
+        return _cache[key]
+    f = font(NASKH, size)
+    l, t, r, b = f.getbbox(txt, direction="rtl")
+    pad = 50
+    w, h = r - l + 2 * pad, b - t + 2 * pad
+    m = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(m).text((pad - l, pad - t), txt, font=f, fill=255, direction="rtl")
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh.putalpha(m.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(12)))
+    out.alpha_composite(sh, (0, 10))
+    ys = np.linspace(0, 1, h)[:, None, None]
+    top = np.array(fill, np.float32)
+    bot = np.array(hl if hl else fill, np.float32) * 0.86
+    rgb = np.broadcast_to(top * (1 - ys) + bot * ys, (h, w, 3))
+    face = Image.fromarray(np.dstack([rgb, np.asarray(m)]).astype(np.uint8), "RGBA")
+    out.alpha_composite(face)
+    _cache[key] = out
+    return out
+
+
+def draw_bold(cv, ov, t, y):
+    dur = ov["dur"]
+    pop = min(1.0, t / 0.18)
+    sc = 0.7 + 0.42 * pop - 0.12 * smooth((t - 0.18) / 0.2)       # punch in, settle at 1.0
+    kout = 1 - smooth((t - (dur - 0.25)) / 0.25)
+    col = (255, 214, 10) if ov.get("color") == "yellow" else (255, 255, 255)
+    g = bold_word(ov["text"], ov.get("size", 156), col)
+    if g.width > W - 40:
+        g = g.resize((W - 40, int(g.height * (W - 40) / g.width)), Image.LANCZOS)
+    gw, gh = max(1, int(g.width * sc)), max(1, int(g.height * sc))
+    im = fade(g.resize((gw, gh), Image.LANCZOS), kout * min(1, t / 0.1))
+    cv.alpha_composite(im, (W // 2 - gw // 2, int(y - gh / 2)))
+
+
+def bg_word_painter(ov, t):
+    """giant soft word drawn on the room, behind the presenter"""
+    def paint(bg):
+        dur = ov["dur"]
+        k = smooth(t / 0.6) * (1 - smooth((t - (dur - 0.5)) / 0.5))
+        if k <= 0:
+            return
+        g = bold_word(ov["text"], 420, (255, 236, 200))
+        drift = int(40 * t)
+        im = fade(g.filter(ImageFilter.GaussianBlur(3)), 0.34 * k)
+        bg.alpha_composite(im, (W // 2 - im.width // 2 + 120 - drift, ov.get("y", 700) - im.height // 2)
+                           if im.width < 4000 else (0, 0))
+    return paint
+
+
+def draw_broll(cv, ov, t):
+    """full-screen cutaway (the voice continues) with a caption, or a picture-in-picture card"""
+    import broll
+    dur = ov["dur"]
+    fn = broll.VISUALS[ov["visual"]]
+    if ov["visual"] == "light":
+        pl = _cache.get("arches")
+        if pl is None:
+            ap = os.path.join(PLATES, "arches_v_bg.png")
+            pl = Image.open(ap).convert("RGB") if os.path.exists(ap) else None
+            _cache["arches"] = pl
+        vis = broll.light(t, dur, pl)
+    else:
+        vis = fn(t, dur)
+    k = smooth(t / 0.22) * (1 - smooth((t - (dur - 0.22)) / 0.22))
+    if ov.get("mode", "full") == "full":
+        if ov.get("caption"):
+            g = bold_word(ov["caption"], ov.get("size", 140), (255, 255, 255))
+            ci = min(1, t / 0.25)
+            vis.alpha_composite(fade(g, ci), (W // 2 - g.width // 2, ov.get("cy", 1420) - g.height // 2))
+        cv.paste(Image.blend(cv, vis, k) if k < 1 else vis, (0, 0))
+    else:
+        side = 620
+        sq = vis.crop(((W - 1080) // 2, 600, (W - 1080) // 2 + 1080, 1680)).resize((side, side), Image.LANCZOS)
+        m = Image.new("L", (side, side), 0)
+        ImageDraw.Draw(m).rounded_rectangle([0, 0, side - 1, side - 1], 40, fill=255)
+        sq.putalpha(m)
+        y = int(260 - 80 * (1 - k))
+        x = (W - side) // 2
+        sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(sh).rounded_rectangle([x, y + 16, x + side, y + side + 16], 40, fill=(0, 0, 0, int(150 * k)))
+        cv.alpha_composite(sh.filter(ImageFilter.GaussianBlur(16)))
+        cv.alpha_composite(fade(sq, k), (x, y))
+        ImageDraw.Draw(cv).rounded_rectangle([x - 2, y - 2, x + side + 2, y + side + 2], 42,
+                                             outline=GOLD_HI + (int(255 * k),), width=4)
+
+
+def mono(cv, k):
+    a = np.asarray(cv).astype(np.float32)
+    g = (a[..., :3] @ np.array([0.3, 0.59, 0.11], np.float32))[..., None]
+    a[..., :3] = a[..., :3] * (1 - k) + (g * np.array([1.0, 0.97, 0.92])) * k
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+
 # ---- render -----------------------------------------------------------------------------------
 
 def resolve_overlays(plan, pieces):
@@ -457,27 +648,42 @@ def resolve_overlays(plan, pieces):
     return res
 
 
-def frame_at(fi, pieces, overlays, piece, person, eyes):
+def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
     t = fi / FPS
+    active = [ov for ov in overlays if ov["t"] <= t < ov["t"] + ov["dur"]]
     if "card" in piece:
         cv = full_card(piece["card"], t - piece["t"], piece["dur"])
     else:
         z = ZOOM[piece["shot"]]
         if piece.get("push"):
             z *= 1 + 0.06 * (t - piece["t"]) / max(0.1, piece["out"] - piece["in"])
-        cv = studio_frame(person, eyes, z, EYE_Y[piece["shot"]])
-        cv.alpha_composite(shade())
-        for ov in overlays:
-            if ov["t"] <= t < ov["t"] + ov["dur"]:
+        painters = [bg_word_painter(ov, t - ov["t"]) for ov in active if ov["type"] == "bgword"]
+        cv = studio_frame(person, eyes, z, EYE_Y[piece["shot"]],
+                          (lambda bg: [p(bg) for p in painters]) if painters else None)
+        for ov in active:
+            if ov["type"] == "grade":
                 lt = t - ov["t"]
-                if ov["type"] == "word":
-                    draw_word(cv, ov, lt, ov.get("y", 540))
-                elif ov["type"] == "list":
-                    draw_list(cv, ov["items"], t, ov.get("y", 380))
-                elif ov["type"] == "card":
-                    draw_card(cv, ov, lt, ov.get("y", 230))
+                cv = mono(cv, 0.9 * smooth(lt / 0.4) * (1 - smooth((lt - ov["dur"] + 0.4) / 0.4)))
+        cv.alpha_composite(shade())
+        for ov in active:
+            lt = t - ov["t"]
+            if ov["type"] == "word":
+                draw_word(cv, ov, lt, ov.get("y", 540))
+            elif ov["type"] == "bold":
+                draw_bold(cv, ov, lt, ov.get("y", 560))
+            elif ov["type"] == "list":
+                draw_list(cv, ov["items"], t, ov.get("y", 380))
+            elif ov["type"] == "card":
+                draw_card(cv, ov, lt, ov.get("y", 230))
         if plan_lower is not None:
             draw_lower(cv, t - plan_lower)
+        for ov in active:
+            if ov["type"] == "broll":
+                draw_broll(cv, ov, t - ov["t"])
+    if total and not piece.get("card", {}).get("end"):
+        draw_logo(cv)
+        draw_timer(cv, t, total)
+        draw_strip(cv)
     return cv
 
 
@@ -509,7 +715,7 @@ def main():
                                       "-frames:v", "1", "-vf", f"scale={KW}:{KH}:flags=area", "-f", "rawvideo",
                                       "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
                 person = key(np.frombuffer(raw, np.uint8).reshape(KH, KW, 3))
-            cv = frame_at(int(ts_ * FPS), pieces, overlays, p, person, eyes.get(p.get("take"), [0, 0, 1]))
+            cv = frame_at(int(ts_ * FPS), pieces, overlays, p, person, eyes.get(p.get("take"), [0, 0, 1]), total)
             cv.convert("RGB").save(os.path.join(work, f"still_{ts_:.1f}.jpg"), quality=88)
         return
     wav = os.path.join(work, "audio.wav")
@@ -525,12 +731,12 @@ def main():
     for p in pieces:
         if "card" in p:
             for _ in range(int(round(p["dur"] * FPS))):
-                enc.stdin.write(frame_at(fi, pieces, overlays, p, None, None).convert("RGB").tobytes())
+                enc.stdin.write(frame_at(fi, pieces, overlays, p, None, None, total).convert("RGB").tobytes())
                 fi += 1
         else:
             ey = eyes[p["take"]]
             for fr in frames_of(p):
-                enc.stdin.write(frame_at(fi, pieces, overlays, p, key(fr), ey).convert("RGB").tobytes())
+                enc.stdin.write(frame_at(fi, pieces, overlays, p, key(fr), ey, total).convert("RGB").tobytes())
                 fi += 1
         print(f"  {fi}/{nfr} frames", flush=True)
     enc.stdin.close()

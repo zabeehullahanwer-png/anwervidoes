@@ -198,38 +198,6 @@
  ],
  "overlays": [
   {
-   "type": "word",
-   "text": "آنکھ کھلی",
-   "kicker": "آج صبح",
-   "take": "171336",
-   "at": 14.75,
-   "until": 16.4
-  },
-  {
-   "type": "word",
-   "text": "تین نعمتیں",
-   "take": "171336",
-   "at": 16.45,
-   "until": 18.55
-  },
-  {
-   "type": "word",
-   "text": "پوری دنیا",
-   "kicker": "گویا",
-   "size": 132,
-   "take": "171336",
-   "at": 18.6,
-   "until": 20.7
-  },
-  {
-   "type": "word",
-   "text": "جامع ترمذی",
-   "kicker": "حدیثِ رسول",
-   "take": "171951",
-   "at": 10.7,
-   "until": 14.2
-  },
-  {
    "type": "list",
    "take": "171336",
    "y": 300,
@@ -250,83 +218,6 @@
    ]
   },
   {
-   "type": "word",
-   "text": "= پوری دنیا",
-   "size": 100,
-   "y": 800,
-   "take": "171336",
-   "at": 31.6,
-   "until": 33.2
-  },
-  {
-   "type": "word",
-   "text": "امن",
-   "kicker": "گھر میں",
-   "take": "171336",
-   "at": 41.5,
-   "until": 42.6
-  },
-  {
-   "type": "word",
-   "text": "صحت و سلامتی",
-   "take": "171336",
-   "at": 44.4,
-   "until": 45.9
-  },
-  {
-   "type": "word",
-   "text": "ایک دن کی روزی",
-   "take": "171336",
-   "at": 47.7,
-   "until": 52.9
-  },
-  {
-   "type": "word",
-   "text": "پوری دنیا",
-   "size": 132,
-   "take": "171336",
-   "at": 54.6,
-   "until": 56.1
-  },
-  {
-   "type": "word",
-   "text": "مقابلے کی دوڑ",
-   "take": "171336",
-   "at": 58.5,
-   "until": 62.0
-  },
-  {
-   "type": "word",
-   "text": "یہ لمحہ",
-   "kicker": "ہم بھول جاتے ہیں",
-   "take": "171336",
-   "at": 68.4,
-   "until": 72.3
-  },
-  {
-   "type": "word",
-   "text": "مستقبل کی فکر",
-   "take": "171336",
-   "at": 73.2,
-   "until": 75.7
-  },
-  {
-   "type": "word",
-   "text": "ماضی کا غم",
-   "take": "171336",
-   "at": 79.3,
-   "until": 81.9
-  },
-  {
-   "type": "word",
-   "text": "لمحۂ موجود",
-   "kicker": "شکر کے ساتھ جینا",
-   "size": 132,
-   "take": "171336",
-   "at": 99.4,
-   "until": 106.4
-  },
-  {
    "type": "card",
    "arabic": "أَلَا إِنَّ أَوْلِيَاءَ اللَّهِ لَا خَوْفٌ عَلَيْهِمْ وَلَا هُمْ يَحْزَنُونَ",
    "ref": "سورۃ یونس · آیت ۶۲",
@@ -334,30 +225,6 @@
    "take": "171336",
    "at": 106.9,
    "until": 114.2
-  },
-  {
-   "type": "word",
-   "text": "نہ اندیشہ",
-   "kicker": "مستقبل کا",
-   "take": "171336",
-   "at": 119.3,
-   "until": 121.7
-  },
-  {
-   "type": "word",
-   "text": "نہ غم",
-   "kicker": "ماضی کا",
-   "take": "171336",
-   "at": 122.1,
-   "until": 123.35
-  },
-  {
-   "type": "word",
-   "text": "جنت",
-   "take": "171336",
-   "at": 123.6,
-   "until": 126.0,
-   "size": 140
   },
   {
    "type": "card",
@@ -369,26 +236,201 @@
    "until": 158.2
   },
   {
+   "type": "broll",
+   "visual": "sunrise",
+   "take": "171336",
+   "at": 14.6,
+   "until": 16.4,
+   "caption": "آج صبح"
+  },
+  {
+   "type": "bold",
+   "text": "۳ نعمتیں",
+   "take": "171336",
+   "at": 16.45,
+   "until": 18.55,
+   "color": "yellow"
+  },
+  {
+   "type": "bgword",
+   "text": "۳",
+   "take": "171336",
+   "at": 16.45,
+   "until": 18.55
+  },
+  {
+   "type": "broll",
+   "visual": "globe",
+   "take": "171336",
+   "at": 18.6,
+   "until": 20.7,
+   "caption": "پوری دنیا"
+  },
+  {
    "type": "word",
+   "text": "جامع ترمذی",
+   "take": "171951",
+   "at": 10.7,
+   "until": 14.2,
+   "kicker": "حدیثِ رسول"
+  },
+  {
+   "type": "word",
+   "text": "= پوری دنیا",
+   "take": "171336",
+   "at": 31.6,
+   "until": 33.2,
+   "size": 100,
+   "y": 800
+  },
+  {
+   "type": "bold",
+   "text": "امن",
+   "take": "171336",
+   "at": 41.5,
+   "until": 42.6
+  },
+  {
+   "type": "bgword",
+   "text": "امن",
+   "take": "171336",
+   "at": 41.5,
+   "until": 42.6
+  },
+  {
+   "type": "broll",
+   "visual": "ecg",
+   "take": "171336",
+   "at": 44.4,
+   "until": 45.9,
+   "caption": "صحت"
+  },
+  {
+   "type": "broll",
+   "visual": "wheat",
+   "take": "171336",
+   "at": 47.7,
+   "until": 50.6,
+   "caption": "آج کی روزی"
+  },
+  {
+   "type": "bold",
+   "text": "پوری دنیا",
+   "take": "171336",
+   "at": 54.6,
+   "until": 56.1,
+   "color": "yellow"
+  },
+  {
+   "type": "bgword",
+   "text": "دنیا",
+   "take": "171336",
+   "at": 54.6,
+   "until": 56.1
+  },
+  {
+   "type": "bold",
    "text": "آگے بڑھیے",
-   "y": 575,
    "take": "171336",
    "at": 158.0,
-   "until": 160.8
+   "until": 160.8,
+   "y": 575
   },
   {
-   "type": "word",
-   "text": "سکون",
-   "kicker": "زندگی میں",
-   "size": 150,
+   "type": "broll",
+   "visual": "race",
    "take": "171336",
-   "at": 172.3,
-   "until": 174.95
+   "at": 58.5,
+   "until": 62.0,
+   "caption": "مقابلے کی دوڑ"
   },
   {
    "type": "word",
+   "text": "یہ لمحہ",
+   "take": "171336",
+   "at": 68.4,
+   "until": 72.3,
+   "kicker": "ہم بھول جاتے ہیں"
+  },
+  {
+   "type": "bgword",
+   "text": "لمحہ",
+   "take": "171336",
+   "at": 68.4,
+   "until": 72.3
+  },
+  {
+   "type": "broll",
+   "visual": "clock_fwd",
+   "take": "171336",
+   "at": 73.2,
+   "until": 75.7,
+   "caption": "کل کی فکر"
+  },
+  {
+   "type": "grade",
+   "take": "171336",
+   "at": 76.5,
+   "until": 82.0
+  },
+  {
+   "type": "bold",
+   "text": "ماضی کا غم",
+   "take": "171336",
+   "at": 79.3,
+   "until": 81.9
+  },
+  {
+   "type": "broll",
+   "visual": "hourglass",
+   "take": "171336",
+   "at": 99.4,
+   "until": 102.2,
+   "caption": "لمحۂ موجود"
+  },
+  {
+   "type": "word",
+   "text": "شکر کے ساتھ جینا",
+   "take": "171336",
+   "at": 102.3,
+   "until": 106.4
+  },
+  {
+   "type": "word",
+   "text": "نہ اندیشہ",
+   "take": "171336",
+   "at": 119.3,
+   "until": 121.7,
+   "kicker": "مستقبل کا"
+  },
+  {
+   "type": "word",
+   "text": "نہ غم",
+   "take": "171336",
+   "at": 122.1,
+   "until": 123.35,
+   "kicker": "ماضی کا"
+  },
+  {
+   "type": "broll",
+   "visual": "light",
+   "take": "171336",
+   "at": 123.6,
+   "until": 126.0,
+   "caption": "جنت"
+  },
+  {
+   "type": "word",
+   "text": "شکر",
+   "take": "171336",
+   "at": 129.75,
+   "until": 131.7,
+   "kicker": "تو کہیں گے",
+   "size": 150
+  },
+  {
+   "type": "bold",
    "text": "جائزہ لیں",
-   "kicker": "ہم سب",
    "take": "171951",
    "at": 246.3,
    "until": 249.4
@@ -401,13 +443,19 @@
    "until": 254.6
   },
   {
-   "type": "word",
-   "text": "شکر",
-   "kicker": "تو کہیں گے",
-   "size": 150,
+   "type": "bold",
+   "text": "سکون",
    "take": "171336",
-   "at": 129.75,
-   "until": 131.7
+   "at": 172.3,
+   "until": 174.95,
+   "color": "yellow"
+  },
+  {
+   "type": "bgword",
+   "text": "سکون",
+   "take": "171336",
+   "at": 172.3,
+   "until": 174.95
   }
  ]
 }
