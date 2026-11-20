@@ -130,7 +130,7 @@ def save(name, y):
         w.writeframes((st * 32767).astype(np.int16).tobytes())
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and "--accents" not in sys.argv:
     import make_reel as R
     os.makedirs(OUTD, exist_ok=True)
     work = os.path.join(R.ROOT, "videos", "work", "sfx")
@@ -166,3 +166,86 @@ if __name__ == "__main__":
                     "-i", wav, "-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "20", "-c:a", "aac",
                     "-b:a", "192k", "-t", f"{seg * len(SOUNDS)}", "-movflags", "+faststart", out], check=True)
     print(out)
+
+
+# ---- jump-cut accents: the short "ٹک" between two sentences -------------------------------------------
+
+def tok():                     # wooden knock
+    d = 0.12
+    t = t_(d)
+    body = np.sin(2 * np.pi * 820 * t) * env(d, 0.0005, 0.018) + 0.6 * np.sin(2 * np.pi * 1650 * t) * env(d, 0.0005, 0.008)
+    n = rng.normal(0, 1, len(t)) * env(d, 0.0003, 0.002)
+    return body + 0.5 * n
+
+
+def mouse_click():
+    n = int(0.09 * SR)
+    a = np.pad(tick(), (0, n))[:n]
+    return a + np.roll(a, int(0.045 * SR)) * 0.6
+
+
+def thud():                    # low "dhum" used with a zoom punch-in
+    d = 0.35
+    t = t_(d)
+    f = 70 + 90 * np.exp(-t * 40)
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * env(d, 0.002, 0.08) + lp(rng.normal(0, 1, len(t)), 0.05) * env(d, 0.0005, 0.01)
+
+
+def snap():
+    d = 0.1
+    n = rng.normal(0, 1, int(d * SR))
+    bp = lp(n, 0.5) - lp(n, 0.12)
+    return bp * env(d, 0.0003, 0.012) * 2
+
+
+def soft_tick():               # clock-like
+    d = 0.06
+    t = t_(d)
+    return np.sin(2 * np.pi * 2900 * t) * env(d, 0.0002, 0.004) + 0.4 * (tick()[: len(t)])
+
+
+ACCENTS = [("tok", "ٹک (لکڑی کی ٹھک)", tok), ("click", "کلک (ماؤس)", mouse_click), ("thud", "دھم (زوم کے ساتھ)", thud),
+           ("snap", "چٹکی (Snap)", snap), ("softtick", "گھڑی کی ٹک", soft_tick)]
+
+
+def accent_demo():
+    """the same cut from the reel, once per accent, with a zoom punch on the cut"""
+    import make_reel as R
+    work = os.path.join(R.ROOT, "videos", "work", "sfx")
+    src = os.path.join(R.OUT, "three-blessings.mp4")
+    a0, a1, cut = 3.6, 9.0, 6.27 - 3.6           # «...پوری دنیا آپ کے پاس موجود ہے» | «ترمذی شریف میں…»
+    parts = []
+    for i, (name, ur, fn) in enumerate(ACCENTS):
+        save(name, fn())
+        card = Image.new("RGBA", (1080, 1920), (8, 18, 34, 255))
+        num = R.gold_text(f"{i + 1}", 150, R.POPPINS, None)
+        card.alpha_composite(num, ((1080 - num.width) // 2, 640))
+        t1 = R.bold_word(ur, 96, (255, 255, 255))
+        card.alpha_composite(t1, ((1080 - t1.width) // 2, 860))
+        cp = os.path.join(work, f"acc_{i}.png")
+        card.convert("RGB").save(cp)
+        clip = os.path.join(work, f"acc_{i}.mp4")
+        fc = (f"[0:v]trim={a0}:{a1},setpts=PTS-STARTPTS,"
+              f"scale=w='iw*(1+0.06*between(t,{cut},{cut}+0.25)*(1-(t-{cut})/0.25))':h=-2:eval=frame,"
+              f"crop=1080:1920,format=yuv420p[v];"
+              f"[0:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS[a0];"
+              f"[1:a]adelay={int(cut * 1000)}|{int(cut * 1000)},volume=0.55[s];"
+              f"[a0][s]amix=inputs=2:normalize=0[a]")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-i", os.path.join(OUTD, f"{name}.wav"),
+                        "-filter_complex", fc, "-map", "[v]", "-map", "[a]", "-r", "30", "-c:v", "libx264", "-crf", "20",
+                        "-ar", "48000", "-ac", "2", "-c:a", "aac", clip], check=True)
+        title = os.path.join(work, f"acc_t{i}.mp4")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-t", "1.2", "-i", cp, "-f", "lavfi", "-t", "1.2",
+                        "-i", "anullsrc=r=48000:cl=stereo", "-r", "30", "-vf", "format=yuv420p", "-c:v", "libx264",
+                        "-crf", "20", "-c:a", "aac", "-shortest", title], check=True)
+        parts += [title, clip]
+    lst = os.path.join(work, "acc_list.txt")
+    open(lst, "w").write("".join(f"file '{p}'\n" for p in parts))
+    out = os.path.join(R.OUT, "cut_accents_demo.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy",
+                    "-movflags", "+faststart", out], check=True)
+    print(out)
+
+
+if __name__ == "__main__" and "--accents" in sys.argv:
+    accent_demo()
