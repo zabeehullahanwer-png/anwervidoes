@@ -91,7 +91,7 @@ def icon(kind, s=120, col=GOLD_HI):
 def cover_9x16(person, eyes):
     def behind(bg):
         a = np.asarray(bg).astype(np.float32)
-        a[..., :3] *= 0.55                                           # darken the room so the globe glows
+        a[..., :3] *= 0.72                                           # dim the room so the globe glows
         yy, xx = np.mgrid[0:R.H, 0:R.W].astype(np.float32)
         d = np.sqrt((xx - 540) ** 2 + (yy - 820) ** 2)
         a[..., :3] += (np.clip(1 - d / 760, 0, 1) ** 2 * 120)[..., None] * np.array([1.0, 0.72, 0.38])
@@ -102,29 +102,27 @@ def cover_9x16(person, eyes):
     cv = R.studio_frame(person, eyes, 2.5, 1040, behind)
     sh = np.zeros((R.H, R.W), np.float32)
     sh[:520] = np.linspace(1, 0, 520)[:, None] ** 1.2 * 200
-    sh[1450:] = np.linspace(0, 1, R.H - 1450)[:, None] ** 1.2 * 235
+    sh[1250:] = np.linspace(0, 1, R.H - 1250)[:, None] ** 1.1 * 245
     cv.alpha_composite(Image.fromarray(np.dstack([np.full((R.H, R.W, 3), (6, 12, 24)), sh]).astype(np.uint8), "RGBA"))
     clean = cv.copy()
+    R.HEADLINE = "لمحۂ موجود میں جینا سیکھیے"
+    R.SERIES = "SEERAT|insights"
     R.draw_logo(cv)
-    k = R.bold_word("صبح یہ تین نعمتیں ہیں؟", 74, (255, 255, 255))
-    cv.alpha_composite(k, ((R.W - k.width) // 2, 70))
-    t = gold_title("پوری دنیا", 210)
-    cv.alpha_composite(t, ((R.W - t.width) // 2, 200))
-    s2 = R.bold_word("آپ کے پاس ہے", 82, (255, 255, 255))
-    cv.alpha_composite(s2, ((R.W - s2.width) // 2, 500))
-    # icons row at the bottom
+    R.draw_headline(cv)
+    k = R.bold_word("صبح یہ تین نعمتیں ہیں؟", 70, (255, 255, 255))
+    cv.alpha_composite(k, ((R.W - k.width) // 2, 315))
+    t = gold_title("پوری دنیا", 200)
+    cv.alpha_composite(t, ((R.W - t.width) // 2, 420))
+    s2 = R.bold_word("آپ کے پاس ہے", 78, (255, 255, 255))
+    cv.alpha_composite(s2, ((R.W - s2.width) // 2, 700))
     labels = [("home", "امن"), ("heart", "صحت"), ("wheat", "روزی")]
-    xs = [R.W - 230, R.W // 2, 230]
+    xs = [R.W - 210, R.W // 2, 210]
     for (kind, lab), x in zip(labels, xs):
-        ic = icon(kind, 130)
-        cv.alpha_composite(ic, (x - ic.width // 2, 1500))
-        lb = R.gold_text(lab, 64)
-        cv.alpha_composite(lb, (x - lb.width // 2, 1610))
-    d = ImageDraw.Draw(cv)
-    for x in (R.W // 2 - 162, R.W // 2 + 162):
-        d.ellipse([x - 5, 1560, x + 5, 1570], fill=GOLD_HI + (255,))
-    n = R.name_en(40)
-    cv.alpha_composite(n, ((R.W - n.width) // 2, 1800))
+        ic = icon(kind, 120)
+        cv.alpha_composite(ic, (x - ic.width // 2, 1390))
+        lb = R.gold_text(lab, 60)
+        cv.alpha_composite(lb, (x - lb.width // 2, 1490))
+    R.draw_strip(cv)
     return cv, clean
 
 
