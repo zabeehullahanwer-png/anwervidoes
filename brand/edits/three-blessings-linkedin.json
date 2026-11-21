@@ -1,0 +1,638 @@
+{
+ "title": "تین نعمتیں = پوری دنیا",
+ "eyes": {
+  "171336": [
+   871,
+   197,
+   107
+  ],
+  "171951": [
+   879,
+   213,
+   102
+  ]
+ },
+ "segments": [
+  {
+   "take": "171336",
+   "in": 14.48,
+   "out": 20.75,
+   "shots": [
+    "C"
+   ],
+   "trim": false
+  },
+  {
+   "take": "171951",
+   "in": 10.62,
+   "out": 14.25,
+   "shots": [
+    "W"
+   ],
+   "trim": false
+  },
+  {
+   "take": "171336",
+   "in": 24.86,
+   "out": 29.45,
+   "shots": [
+    "M"
+   ],
+   "push": true,
+   "trim": false,
+   "snap": false
+  },
+  {
+   "take": "171336",
+   "in": 29.59,
+   "out": 33.25,
+   "shots": [
+    "M"
+   ],
+   "push": true,
+   "trim": false,
+   "snap": false,
+   "join": true
+  },
+  {
+   "take": "171336",
+   "in": 33.3,
+   "out": 36.32,
+   "shots": [
+    "W"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 41.45,
+   "out": 45.72,
+   "shots": [
+    "C"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 46.62,
+   "out": 56.2,
+   "shots": [
+    "W",
+    "C"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 56.7,
+   "out": 62.9,
+   "shots": [
+    "C"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 62.9,
+   "out": 72.4,
+   "shots": [
+    "W",
+    "C"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 72.4,
+   "out": 76.47,
+   "shots": [
+    "M"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 77.33,
+   "out": 78.35,
+   "shots": [
+    "M"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 78.55,
+   "out": 84.8,
+   "shots": [
+    "C"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 89.6,
+   "out": 90.95,
+   "shots": [
+    "M"
+   ]
+  },
+  {
+   "take": "171336",
+   "in": 98.8,
+   "out": 106.6,
+   "shots": [
+    "C"
+   ],
+   "push": true
+  },
+  {
+   "take": "171336",
+   "in": 106.8,
+   "out": 123.4,
+   "shots": [
+    "W",
+    "C"
+   ]
+  },
+  {
+   "take": "171951",
+   "in": 246.28,
+   "out": 247.22,
+   "shots": [
+    "C"
+   ]
+  },
+  {
+   "take": "171951",
+   "in": 247.8,
+   "out": 249.7,
+   "shots": [
+    "C"
+   ]
+  },
+  {
+   "take": "171951",
+   "in": 250.08,
+   "out": 256.2,
+   "shots": [
+    "C"
+   ],
+   "push": true
+  },
+  {
+   "take": "171336",
+   "in": 168.62,
+   "out": 174.95,
+   "shots": [
+    "W"
+   ]
+  },
+  {
+   "card": {
+    "arabic": "الْحَمْدُ لِلَّهِ",
+    "urdu": "امن · صحت · آج کی روزی",
+    "ref": "شیئر کیجیے · صدقۂ جاریہ",
+    "end": true,
+    "size": 96
+   },
+   "dur": 3.4
+  }
+ ],
+ "overlays": [
+  {
+   "type": "list",
+   "take": "171336",
+   "y": 640,
+   "until": 31.5,
+   "items": [
+    {
+     "text": "امن",
+     "at": 25.9
+    },
+    {
+     "text": "صحت",
+     "at": 27.0
+    },
+    {
+     "text": "آج کی روزی",
+     "at": 30.0
+    }
+   ]
+  },
+  {
+   "type": "card",
+   "arabic": "أَلَا إِنَّ أَوْلِيَاءَ اللَّهِ لَا خَوْفٌ عَلَيْهِمْ وَلَا هُمْ يَحْزَنُونَ",
+   "ref": "سورۃ یونس · آیت ۶۲",
+   "size": 48,
+   "take": "171336",
+   "at": 106.9,
+   "until": 114.2,
+   "y": 505
+  },
+  {
+   "type": "broll",
+   "visual": "sunrise",
+   "take": "171336",
+   "at": 14.6,
+   "until": 16.4,
+   "caption": "آج صبح",
+   "cy": 1050
+  },
+  {
+   "type": "bold",
+   "text": "۳ نعمتیں",
+   "take": "171336",
+   "at": 16.45,
+   "until": 18.55,
+   "color": "yellow",
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bgword",
+   "text": "۳",
+   "take": "171336",
+   "at": 16.45,
+   "until": 18.55
+  },
+  {
+   "type": "broll",
+   "visual": "globe",
+   "take": "171336",
+   "at": 18.6,
+   "until": 20.7,
+   "caption": "پوری دنیا",
+   "cy": 1050
+  },
+  {
+   "type": "bold",
+   "text": "جامع ترمذی",
+   "take": "171951",
+   "at": 10.7,
+   "until": 14.2,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "= پوری دنیا",
+   "take": "171336",
+   "at": 31.6,
+   "until": 33.2,
+   "y": 610,
+   "color": "yellow",
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "امن",
+   "take": "171336",
+   "at": 41.5,
+   "until": 42.6,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bgword",
+   "text": "امن",
+   "take": "171336",
+   "at": 41.5,
+   "until": 42.6
+  },
+  {
+   "type": "broll",
+   "visual": "ecg",
+   "take": "171336",
+   "at": 44.4,
+   "until": 45.7,
+   "caption": "صحت",
+   "cy": 1050
+  },
+  {
+   "type": "broll",
+   "visual": "wheat",
+   "take": "171336",
+   "at": 47.7,
+   "until": 50.6,
+   "caption": "آج کی روزی",
+   "cy": 1050
+  },
+  {
+   "type": "bold",
+   "text": "پوری دنیا",
+   "take": "171336",
+   "at": 54.6,
+   "until": 56.1,
+   "color": "yellow",
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bgword",
+   "text": "دنیا",
+   "take": "171336",
+   "at": 54.6,
+   "until": 56.1
+  },
+  {
+   "type": "broll",
+   "visual": "race",
+   "take": "171336",
+   "at": 58.5,
+   "until": 62.0,
+   "caption": "مقابلے کی دوڑ",
+   "cy": 1050
+  },
+  {
+   "type": "bold",
+   "text": "یہ لمحہ",
+   "take": "171336",
+   "at": 68.4,
+   "until": 72.3,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bgword",
+   "text": "لمحہ",
+   "take": "171336",
+   "at": 68.4,
+   "until": 72.3
+  },
+  {
+   "type": "broll",
+   "visual": "clock_fwd",
+   "take": "171336",
+   "at": 73.2,
+   "until": 75.7,
+   "caption": "کل کی فکر",
+   "cy": 1050
+  },
+  {
+   "type": "grade",
+   "take": "171336",
+   "at": 78.55,
+   "until": 84.8
+  },
+  {
+   "type": "bold",
+   "text": "ماضی کا غم",
+   "take": "171336",
+   "at": 79.3,
+   "until": 84.6,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "broll",
+   "visual": "hourglass",
+   "take": "171336",
+   "at": 99.4,
+   "until": 102.2,
+   "caption": "لمحۂ موجود",
+   "cy": 1050
+  },
+  {
+   "type": "bold",
+   "text": "شکر کے ساتھ جینا",
+   "take": "171336",
+   "at": 102.3,
+   "until": 106.4,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "نہ اندیشہ",
+   "take": "171336",
+   "at": 119.3,
+   "until": 121.7,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "نہ غم",
+   "take": "171336",
+   "at": 122.1,
+   "until": 123.35,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "جائزہ لیں",
+   "take": "171951",
+   "at": 246.3,
+   "until": 249.4,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "موجود نعمتوں کا شکر",
+   "take": "171951",
+   "at": 251.0,
+   "until": 254.6,
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bold",
+   "text": "سکون",
+   "take": "171336",
+   "at": 172.3,
+   "until": 174.95,
+   "color": "yellow",
+   "y": 610,
+   "size": 100
+  },
+  {
+   "type": "bgword",
+   "text": "سکون",
+   "take": "171336",
+   "at": 172.3,
+   "until": 174.95
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 14.46,
+   "until": 17.85,
+   "text": "If you wake up in the morning and you have three things,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 17.88,
+   "until": 20.72,
+   "text": "it is as if the whole world is yours."
+  },
+  {
+   "type": "sub",
+   "take": "171951",
+   "at": 10.66,
+   "until": 14.2,
+   "text": "There is a hadith in Jami' al-Tirmidhi. The Prophet (peace be upon him) said:"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 24.9,
+   "until": 29.44,
+   "text": "“Whoever among you wakes up secure in his home, healthy in his body,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 29.6,
+   "until": 33.2,
+   "text": "and has his food for the day, it is as if the whole world has been gathered for him.”"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 33.35,
+   "until": 36.3,
+   "text": "If a person wakes up in the morning"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 41.5,
+   "until": 45.7,
+   "text": "in a state of peace, his body sound and healthy,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 46.66,
+   "until": 52.95,
+   "text": "and he has his food and drink for the day,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 53.0,
+   "until": 56.15,
+   "text": "then it is as if he owns the whole world."
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 56.72,
+   "until": 62.88,
+   "text": "Today, in the world's race of competition,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 62.92,
+   "until": 67.6,
+   "text": "in the rush to get ever further ahead, we often forget"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 67.62,
+   "until": 72.38,
+   "text": "to enjoy the moment that is actually ours."
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 72.4,
+   "until": 78.3,
+   "text": "We get lost in plans for the future,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 78.56,
+   "until": 84.78,
+   "text": "or in the griefs of the past, the mistakes we made,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 89.6,
+   "until": 90.93,
+   "text": "and we stay trapped inside them."
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 98.8,
+   "until": 102.4,
+   "text": "What a great blessing it is to learn"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 102.42,
+   "until": 106.58,
+   "text": "to live the present moment with gratitude."
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 106.82,
+   "until": 111.4,
+   "text": "That is why Allah says that His friends, those close to Him,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 111.42,
+   "until": 114.6,
+   "text": "are given a great blessing in this world:"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 116.05,
+   "until": 123.38,
+   "text": "no fear of the future, and no grief over the past."
+  },
+  {
+   "type": "sub",
+   "take": "171951",
+   "at": 246.3,
+   "until": 249.68,
+   "text": "So let me, and all of us, reflect:"
+  },
+  {
+   "type": "sub",
+   "take": "171951",
+   "at": 250.1,
+   "until": 256.15,
+   "text": "how grateful are we for the blessings we have right now?"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 168.64,
+   "until": 171.92,
+   "text": "If a person makes this a habit,"
+  },
+  {
+   "type": "sub",
+   "take": "171336",
+   "at": 171.94,
+   "until": 174.93,
+   "text": "he finds peace in life."
+  }
+ ],
+ "headline": "لمحۂ موجود میں جینا سیکھیے",
+ "remove": [
+  [
+   "171336",
+   59.4,
+   59.86
+  ],
+  [
+   "171336",
+   49.66,
+   50.24
+  ],
+  [
+   "171336",
+   114.72,
+   116.02
+  ]
+ ],
+ "series": "SEERAT|insights",
+ "headline_en": "Learn to Live in the Present Moment"
+}

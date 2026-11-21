@@ -158,11 +158,46 @@ def cover_16x9(c916):
     return cv
 
 
+def cover_4x5(clean):
+    """LinkedIn cover (1080x1350): the 9:16 studio crop with the framed headline, an English line,
+    the gold title with its English meaning, and the SEERAT insights / name strip"""
+    H5 = 1350
+    cv = clean.crop((0, 390, R.W, 390 + H5))
+    a = np.zeros((H5, R.W), np.float32)
+    a[:300] = np.linspace(180, 0, 300)[:, None]
+    a[1000:] = np.linspace(0, 1, H5 - 1000)[:, None] ** 1.2 * 235
+    cv.alpha_composite(Image.fromarray(np.dstack([np.full((H5, R.W, 3), (6, 12, 24)), a]).astype(np.uint8), "RGBA"))
+    R.HEADLINE = "لمحۂ موجود میں جینا سیکھیے"
+    R.HEADLINE_EN = "Learn to Live in the Present Moment"
+    R.SERIES = "SEERAT|insights"
+    R.FMT45 = True
+    out = R.frame45(Image.new("RGBA", (R.W, R.H), (0, 0, 0, 0)), 0, [], {})
+    # frame45 draws on a crop of the canvas; reuse its furniture layer over our cover
+    furn = out
+    t = gold_title("پوری دنیا", 170)
+    cv.alpha_composite(t, ((R.W - t.width) // 2, 185))
+    f = R.font(R.CORM_IT, 48)
+    en = "Three blessings. The whole world."
+    d = ImageDraw.Draw(cv)
+    tw = f.getlength(en)
+    d.text(((R.W - tw) / 2, 385), en, font=f, fill=(250, 236, 205), stroke_width=2, stroke_fill=(0, 0, 0))
+    labels = [("home", "Peace"), ("heart", "Health"), ("wheat", "Provision")]
+    for (kind, lab), x in zip(labels, [200, R.W // 2, R.W - 200]):
+        ic = icon(kind, 100)
+        cv.alpha_composite(ic, (x - ic.width // 2, 1080))
+        fl = R.font(R.CORMORANT, 44)
+        lw = fl.getlength(lab)
+        ImageDraw.Draw(cv).text((x - lw / 2, 1180), lab, font=fl, fill=GOLD_HI)
+    cv.alpha_composite(furn)
+    return cv
+
+
 if __name__ == "__main__":
     person = presenter(sys.argv[1])
     eyes = [int(v) for v in os.environ.get("THUMB_EYES", "1088,524,170").split(",")]
     eyes = [eyes[0] * R.KW / 2560, eyes[1] * R.KH / 1440, eyes[2] * R.KW / 2560]
     c, clean = cover_9x16(person, eyes)
     c.convert("RGB").save(os.path.join(OUT, "cover_9x16.jpg"), quality=93)
+    cover_4x5(clean).convert("RGB").save(os.path.join(OUT, "cover_4x5.jpg"), quality=93)
     cover_16x9(clean).convert("RGB").save(os.path.join(OUT, "cover_16x9.jpg"), quality=93)
     print("ok")

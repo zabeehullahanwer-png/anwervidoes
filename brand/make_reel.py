@@ -401,6 +401,26 @@ def draw_word(cv, ov, t, y):
         d.polygon([(cx, ry - q), (cx + q, ry), (cx, ry + q), (cx - q, ry)], fill=GOLD_HI + (int(255 * kout),))
 
 
+def draw_list_row(cv, items, t_out, y0):
+    """4:5 layout: the numbered items side by side (right to left) on one row"""
+    xs = [W * 0.8, W * 0.5, W * 0.2]
+    d = ImageDraw.Draw(cv)
+    for i, it in enumerate(items):
+        t = t_out - it["t"]
+        if t < 0 or t_out > it["end"]:
+            continue
+        kin, kout = env(t, it["end"] - it["t"], 0.4, 0.4)
+        a = kin * kout
+        word = bold_word(it["text"], 80, (255, 255, 255))
+        num = gold_text("۱۲۳۴۵"[i], 60)
+        x = int(xs[i])
+        dy = int(30 * (1 - kin))
+        cv.alpha_composite(fade(num, a), (x - num.width // 2, y0 - 120 + dy))
+        cv.alpha_composite(fade(word, a), (x - word.width // 2, y0 - word.height // 2 + dy))
+        if i:
+            d.ellipse([x + 150 - 5, y0 - 5, x + 150 + 5, y0 + 5], fill=GOLD_HI + (int(255 * a),))
+
+
 def draw_list(cv, items, t_out, y0):
     """numbered list, right-aligned (RTL): each row slides in at its own time"""
     d = ImageDraw.Draw(cv)
@@ -409,7 +429,7 @@ def draw_list(cv, items, t_out, y0):
         if t < 0 or t_out > it["end"]:
             continue
         kin, kout = env(t, it["end"] - it["t"], 0.5, 0.4)
-        y = y0 + i * 125
+        y = y0 + i * LIST_GAP
         num = gold_text("۱۲۳۴۵"[i], 104)
         word = plain_text(it["text"], 84)
         x_right = W - 150 + int(60 * (1 - kin))
@@ -827,7 +847,11 @@ def resolve_overlays(plan, pieces):
                 continue
             ov = dict(ov, t=t)
             if "until" in ov:
-                ov["dur"] = max(0.8, out_time(pieces, ov["take"], ov["until"]) - t)
+                u = out_time(pieces, ov["take"], ov["until"])
+                if u is None:                                  # past the last kept piece of this take
+                    u = max(p["t"] + p["out"] - p["in"] for p in pieces
+                            if "card" not in p and p["take"] == ov["take"] and p["t"] <= t + 1e-6)
+                ov["dur"] = max(0.8, u - t)
         if ov["type"] == "list":
             items = []
             for it in ov["items"]:
@@ -838,6 +862,91 @@ def resolve_overlays(plan, pieces):
             ov = dict(ov, items=items, t=items[0]["t"], dur=end - items[0]["t"])
         res.append(ov)
     return res
+
+
+HEADLINE_EN = None
+
+
+def wrap_lines(txt, f, maxw):
+    words, lines, cur = txt.split(), [], ""
+    for w_ in words:
+        test = (cur + " " + w_).strip()
+        if f.getlength(test) <= maxw or not cur:
+            cur = test
+        else:
+            lines.append(cur)
+            cur = w_
+    lines.append(cur)
+    return lines
+
+
+def draw_sub(cv, ov, t, bottom):
+    """English subtitle: white Poppins on a soft dark pill, fades in and out"""
+    k = smooth(t / 0.15) * (1 - smooth((t - ov["dur"] + 0.15) / 0.15))
+    if k <= 0:
+        return
+    key = ("sub", ov["text"])
+    if key not in _cache:
+        f = font(POPPINS, 40)
+        lines = wrap_lines(ov["text"], f, 900)
+        lh = 54
+        w = int(max(f.getlength(l) for l in lines)) + 56
+        h = lh * len(lines) + 30
+        im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        d.rounded_rectangle([0, 0, w - 1, h - 1], 22, fill=(6, 12, 22, 175))
+        for i, l in enumerate(lines):
+            lw = f.getlength(l)
+            d.text(((w - lw) / 2, 12 + i * lh), l, font=f, fill=(255, 255, 255, 255))
+        _cache[key] = im
+    im = fade(_cache[key], k)
+    cv.alpha_composite(im, ((W - im.width) // 2, bottom - im.height))
+
+
+def frame45(cv, t, active, piece):
+    """crop the 9:16 composition to 4:5 and draw the LinkedIn furniture: logo, framed headline with an English
+    line, English subtitles, and a slim strip with SEERAT insights and the name (no countdown)"""
+    out = cv.crop((0, Y45, W, Y45 + H45))
+    end = piece.get("card", {}).get("end")
+    if not end:
+        if "h45" not in _cache:
+            draw_headline(Image.new("RGBA", (W, H), (0, 0, 0, 0)))
+            hl = _cache["headline"]
+            hl = hl.resize((int(hl.width * 0.8), int(hl.height * 0.8)), Image.LANCZOS)
+            en = None
+            if HEADLINE_EN:
+                fi_ = font(CORM_IT, 44)
+                tw = int(fi_.getlength(HEADLINE_EN)) + 40
+                en = Image.new("RGBA", (tw, 64), (0, 0, 0, 0))
+                ImageDraw.Draw(en).text((20, 4), HEADLINE_EN, font=fi_, fill=(250, 236, 205, 255),
+                                        stroke_width=2, stroke_fill=(0, 0, 0, 150))
+            lg = Image.open(LOGO).convert("RGBA")
+            lg.thumbnail((104, 104), Image.LANCZOS)
+            sr = series_title(SERIES) if SERIES else None
+            if sr is not None:
+                sr = sr.resize((int(sr.width * 0.5), int(sr.height * 0.5)), Image.LANCZOS)
+            _cache["h45"] = (hl, en, lg, sr)
+        hl, en, lg, sr = _cache["h45"]
+        top = Image.new("RGBA", (W, 250), (0, 0, 0, 0))
+        a = np.zeros((250, W), np.float32)
+        a[:] = np.linspace(170, 0, 250)[:, None]
+        out.alpha_composite(Image.fromarray(np.dstack([np.zeros((250, W, 3)), a]).astype(np.uint8), "RGBA"))
+        out.alpha_composite(hl, ((W - hl.width) // 2, 0))
+        if en is not None:
+            out.alpha_composite(en, ((W - en.width) // 2, hl.height - 14))
+        out.alpha_composite(lg, (12, 14))
+        # bottom strip
+        d = ImageDraw.Draw(out)
+        d.rectangle([0, H45 - 84, W, H45], fill=(6, 14, 28, 230))
+        d.line([(0, H45 - 84), (W, H45 - 84)], fill=GOLD_HI + (200,), width=2)
+        nm = name_en(38, 0.12)
+        out.alpha_composite(nm, (W - 18 - nm.width, H45 - 42 - nm.height // 2))
+        if sr is not None:
+            out.alpha_composite(sr, (14, H45 - 42 - sr.height // 2 - 4))
+        for ov in active:
+            if ov["type"] == "sub":
+                draw_sub(out, ov, t - ov["t"], H45 - 108)
+    return out
 
 
 def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
@@ -868,7 +977,7 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
             elif ov["type"] == "bold":
                 draw_bold(cv, ov, lt, ov.get("y", 560))
             elif ov["type"] == "list":
-                draw_list(cv, ov["items"], t, ov.get("y", 380))
+                (draw_list_row if FMT45 else draw_list)(cv, ov["items"], t, ov.get("y", 380))
             elif ov["type"] == "card":
                 draw_card(cv, ov, lt, ov.get("y", 230))
         if plan_lower is not None:
@@ -876,6 +985,8 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
         for ov in active:
             if ov["type"] == "broll":
                 draw_broll(cv, ov, t - ov["t"])
+    if FMT45:
+        return frame45(cv, t, active, piece)
     if total and not piece.get("card", {}).get("end"):
         draw_logo(cv)
         draw_timer(cv, t, total)
@@ -884,6 +995,10 @@ def frame_at(fi, pieces, overlays, piece, person, eyes, total=None):
     return cv
 
 
+FMT45 = os.environ.get("FORMAT") == "4x5"
+LIST_GAP = 100 if FMT45 else 125
+Y45 = 300                      # 4:5 crop window top inside the 9:16 frame
+H45 = 1350
 plan_lower = None
 CUT_SFX = os.environ.get("CUT_SFX")
 
@@ -899,7 +1014,8 @@ def main():
     pieces, total = build_cuts(plan, work)
     overlays = resolve_overlays(plan, pieces)
     plan_lower = plan.get("lower_third_at")
-    global HEADLINE, SERIES
+    global HEADLINE, SERIES, HEADLINE_EN
+    HEADLINE_EN = plan.get("headline_en")
     HEADLINE = plan.get("headline")
     SERIES = plan.get("series")
     eyes = plan["eyes"]
@@ -931,7 +1047,7 @@ def main():
         add_clicks(wav, times, CUT_SFX, gain=float(os.environ.get("CUT_GAIN", "0.5")))
     out = os.path.join(OUT, f"{name}{'_draft' if '--draft' in sys.argv else ''}.mp4")
     nfr = int(round(total * FPS))
-    enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
+    enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H45 if FMT45 else H}",
                             "-r", str(FPS), "-i", "-", "-i", wav,
                             "-vf", f"vignette=angle=PI/5,fade=t=in:d=0.4,fade=t=out:st={total - 0.6}:d=0.6,format=yuv420p",
                             "-t", f"{total}", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-c:a", "aac",
